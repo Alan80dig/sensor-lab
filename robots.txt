@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://alan80dig.github.io/sensor-lab/sitemap.xml
