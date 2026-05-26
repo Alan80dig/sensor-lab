@@ -180,10 +180,6 @@
                 <div class="dot" id="motionDot"></div>
                 <span style="font-size:13px;">Акселерометр</span>
             </div>
-            <div class="status-row">
-                <div class="dot" id="lightDot"></div>
-                <span style="font-size:13px;">Освещённость: <span id="lightVal">-- lx</span></span>
-            </div>
         </div>
 
         <!-- Ориентация -->
@@ -232,16 +228,13 @@
     </div>
 
     <script>
-        // Данные сенсоров
         let pitch = 0, roll = 0, yaw = 0;
         let ax = 0, ay = 0, az = 0;
-        let light = null;
-        let hasOrient = false, hasMotion = false, hasLight = false;
+        let hasOrient = false, hasMotion = false;
         let logging = false;
         let logEntries = [];
         let exportFormat = 'csv';
 
-        // Orientation
         window.addEventListener('deviceorientation', e => {
             if (e.alpha != null) {
                 pitch = e.beta || 0;
@@ -252,7 +245,6 @@
             }
         });
 
-        // Motion
         window.addEventListener('devicemotion', e => {
             if (e.accelerationIncludingGravity) {
                 ax = e.accelerationIncludingGravity.x || 0;
@@ -262,23 +254,6 @@
                 updateAll();
             }
         });
-
-        // Ambient Light
-        if ('AmbientLightSensor' in window) {
-            try {
-                const sensor = new AmbientLightSensor();
-                sensor.onreading = () => {
-                    light = sensor.illuminance;
-                    hasLight = true;
-                    updateAll();
-                };
-                sensor.onerror = () => { light = null; hasLight = false; updateAll(); };
-                sensor.start();
-            } catch(e) {
-                light = null;
-                hasLight = false;
-            }
-        }
 
         function updateAll() {
             updateDisplay();
@@ -290,8 +265,6 @@
         function updateStatus() {
             document.getElementById('orientDot').className = 'dot ' + (hasOrient ? 'on' : 'off');
             document.getElementById('motionDot').className = 'dot ' + (hasMotion ? 'on' : 'off');
-            document.getElementById('lightDot').className = 'dot ' + (hasLight ? 'on' : 'off');
-            document.getElementById('lightVal').textContent = light != null ? light.toFixed(0) + ' lx' : '-- lx';
         }
 
         function updateDisplay() {
@@ -330,7 +303,6 @@
             ctx.restore();
         }
 
-        // Логирование
         function setFormat(f) {
             exportFormat = f;
             document.getElementById('fmtCsv').classList.toggle('active', f === 'csv');
@@ -352,8 +324,7 @@
         function addEntry() {
             const entry = {
                 timestamp: new Date().toISOString(),
-                pitch, roll, yaw, ax, ay, az,
-                light: light
+                pitch, roll, yaw, ax, ay, az
             };
             logEntries.push(entry);
             document.getElementById('logCount').textContent = logEntries.length;
@@ -361,7 +332,7 @@
                 const prev = document.getElementById('logPreview');
                 const last = logEntries.slice(-5);
                 prev.innerHTML = last.map(e =>
-                    `${e.timestamp.slice(11,19)} | P:${e.pitch.toFixed(1).padStart(5)} R:${e.roll.toFixed(1).padStart(5)} | Z:${e.az.toFixed(1).padStart(5)}${e.light!=null?' | '+e.light.toFixed(0)+'lx':''}`
+                    `${e.timestamp.slice(11,19)} | P:${e.pitch.toFixed(1).padStart(5)} R:${e.roll.toFixed(1).padStart(5)} | Z:${e.az.toFixed(1).padStart(5)}`
                 ).join('\n');
             }
         }
@@ -376,17 +347,17 @@
             if (!logEntries.length) { alert('Нет данных'); return; }
             let content, fn, mime;
             if (exportFormat === 'csv') {
-                const head = 'timestamp,pitch,roll,yaw,accelX,accelY,accelZ,light\n';
+                const head = 'timestamp,pitch,roll,yaw,accelX,accelY,accelZ\n';
                 content = head + logEntries.map(e =>
-                    `${e.timestamp},${e.pitch},${e.roll},${e.yaw},${e.ax},${e.ay},${e.az},${e.light ?? ''}`
+                    `${e.timestamp},${e.pitch},${e.roll},${e.yaw},${e.ax},${e.ay},${e.az}`
                 ).join('\n');
                 fn = 'sensor-data.csv'; mime = 'text/csv';
             } else {
                 content = 'Sensor Lab Data\n' + '='.repeat(55) + '\n' +
-                    'Timestamp                | Pitch   | Roll    | AccelZ  | Light\n' +
+                    'Timestamp                | Pitch   | Roll    | AccelZ\n' +
                     '-'.repeat(55) + '\n' +
                     logEntries.map(e =>
-                        `${e.timestamp.slice(0,23).padEnd(24)} | ${e.pitch.toFixed(1).padStart(6)} | ${e.roll.toFixed(1).padStart(6)} | ${e.az.toFixed(1).padStart(6)} | ${e.light!=null ? e.light.toFixed(0)+' lx' : '--'}`
+                        `${e.timestamp.slice(0,23).padEnd(24)} | ${e.pitch.toFixed(1).padStart(6)} | ${e.roll.toFixed(1).padStart(6)} | ${e.az.toFixed(1).padStart(6)}`
                     ).join('\n') + '\n' + '-'.repeat(55) + `\nВсего: ${logEntries.length}`;
                 fn = 'sensor-data.txt'; mime = 'text/plain';
             }
@@ -397,7 +368,6 @@
             a.click();
         }
 
-        // iOS permission
         if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
             document.body.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;">
                 <div style="background:#12121a;padding:32px;border-radius:16px;text-align:center;border:1px solid #2a2a3a;">
