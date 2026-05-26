@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Lab</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --panel: #12121a;
+            --border: #2a2a3a;
+            --green: #00ff88;
+            --red: #ff4444;
+            --blue: #44aaff;
+            --text: #e0e0e0;
+            --muted: #666;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'SF Mono', 'Courier New', monospace;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+        .header {
+            text-align: center;
+            padding: 24px 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            letter-spacing: 4px;
+            color: var(--green);
+        }
+
+        .header .subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #1a2a1a;
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .panel h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+        }
+
+        .label { font-size: 13px; color: #aaa; }
+        .value { font-size: 16px; font-weight: bold; color: var(--green); }
+
+        .bar {
+            height: 4px;
+            background: #1a1a2a;
+            border-radius: 2px;
+            margin: 6px 0;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.15s ease;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .status-badge.idle { background: #1a1a2a; color: var(--muted); }
+        .status-badge.triggered { background: #2a1a1a; color: var(--red); }
+        .status-badge.active { background: #1a2a1a; color: var(--green); }
+
+        .gesture-counter {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .counter-item {
+            background: #0a0a12;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .counter-item .count {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--green);
+        }
+
+        .counter-item .name {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .slider-group {
+            margin-bottom: 12px;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--green);
+        }
+
+        .log-entry {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .log-entry .event { color: var(--green); }
+
+        button {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--green);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        button:hover { border-color: var(--green); }
+        button.primary { background: var(--green); color: var(--bg); border: none; }
+        button.danger { color: var(--red); border-color: var(--red); }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        #visualizer {
+            width: 100%;
+            height: 150px;
+            background: #0a0a12;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SENSOR LAB</h1>
+            <div class="subtitle">Инструмент для Ghost Lock</div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('sensors')">Сенсоры</div>
+            <div class="tab" onclick="switchTab('detector')">Детектор</div>
+            <div class="tab" onclick="switchTab('logs')">Логи</div>
+        </div>
+
+        <!-- Сенсоры -->
+        <div id="tab-sensors" class="tab-content active">
+            <div class="panel">
+                <h3>Ориентация</h3>
+                <div class="row"><span class="label">Pitch</span><span class="value" id="pitchVal">--°</span></div>
+                <div class="bar"><div class="bar-fill" id="pitchBar" style="width:50%;background:var(--green)"></div></div>
+                <div class="row"><span class="label">Roll</span><span class="value" id="rollVal">--°</span></div>
+                <div class="bar"><div class="bar-fill" id="rollBar" style="width:50%;background:var(--blue)"></div></div>
+                <div class="row"><span class="label">Yaw</span><span class="value" id="yawVal">--°</span></div>
+            </div>
+            <div class="panel">
+                <h3>Акселерометр</h3>
+                <div class="row"><span class="label">X</span><span class="value" id="accelX" style="color:#ff8844">--</span></div>
+                <div class="bar"><div class="bar-fill" id="accelXBar" style="width:50%;background:#ff8844"></div></div>
+                <div class="row"><span class="label">Y</span><span class="value" id="accelY" style="color:#44aaff">--</span></div>
+                <div class="bar"><div class="bar-fill" id="accelYBar" style="width:50%;background:#44aaff"></div></div>
+                <div class="row"><span class="label">Z</span><span class="value" id="accelZ" style="color:#ff44ff">--</span></div>
+                <div class="bar"><div class="bar-fill" id="accelZBar" style="width:50%;background:#ff44ff"></div></div>
+            </div>
+            <canvas id="visualizer"></canvas>
+        </div>
+
+        <!-- Детектор -->
+        <div id="tab-detector" class="tab-content">
+            <div class="panel" style="text-align:center;">
+                <h3>Статус</h3>
+                <div id="statusBadge" class="status-badge idle">ОЖИДАНИЕ</div>
+                <div id="lastGesture" style="margin-top:8px;font-size:14px;color:var(--green);"></div>
+            </div>
+            <div class="panel">
+                <h3>Счётчик срабатываний</h3>
+                <div class="gesture-counter" id="counters">
+                    <div class="counter-item"><div class="count" id="cnt-grab">0</div><div class="name">Прижал к себе</div></div>
+                    <div class="counter-item"><div class="count" id="cnt-flip">0</div><div class="name">Переворот в руке</div></div>
+                    <div class="counter-item"><div class="count" id="cnt-table">0</div><div class="name">Переворот на столе</div></div>
+                    <div class="counter-item"><div class="count" id="cnt-pocket">0</div><div class="name">В карман</div></div>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Пороги</h3>
+                <div class="slider-group">
+                    <label>Roll <span id="th-roll-val">80°</span></label>
+                    <input type="range" id="th-roll" min="50" max="100" value="80" oninput="updateThresholds()">
+                </div>
+                <div class="slider-group">
+                    <label>Pitch <span id="th-pitch-val">110°</span></label>
+                    <input type="range" id="th-pitch" min="70" max="150" value="110" oninput="updateThresholds()">
+                </div>
+                <div class="slider-group">
+                    <label>Accel Y <span id="th-accel-val">5.0</span></label>
+                    <input type="range" id="th-accel" min="20" max="100" value="50" oninput="updateThresholds()">
+                </div>
+                <div class="button-row">
+                    <button class="primary" id="btnStart" onclick="startDetector()">▶ Запустить</button>
+                    <button id="btnStop" onclick="stopDetector()" disabled>⏹ Стоп</button>
+                    <button class="danger" onclick="resetCounters()">Сброс</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Логи -->
+        <div id="tab-logs" class="tab-content">
+            <div class="panel">
+                <h3>Журнал событий (<span id="logCount">0</span>)</h3>
+                <div id="logContainer" style="max-height:300px;overflow-y:auto;">
+                    <div class="log-entry" style="color:var(--muted);">Ожидание событий...</div>
+                </div>
+                <div class="button-row">
+                    <button onclick="exportLog('csv')">📥 CSV</button>
+                    <button onclick="exportLog('txt')">📥 TXT</button>
+                    <button class="danger" onclick="clearLog()">🗑 Очистить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====== СЕНСОРЫ ======
+        let pitch = 0, roll = 0, yaw = 0;
+        let ax = 0, ay = 0, az = 0;
+
+        window.addEventListener('deviceorientation', e => {
+            if (e.alpha != null) {
+                pitch = e.beta || 0;
+                roll = e.gamma || 0;
+                yaw = e.alpha || 0;
+                updateSensorDisplay();
+            }
+        });
+
+        window.addEventListener('devicemotion', e => {
+            if (e.accelerationIncludingGravity) {
+                ax = e.accelerationIncludingGravity.x || 0;
+                ay = e.accelerationIncludingGravity.y || 0;
+                az = e.accelerationIncludingGravity.z || 0;
+                updateSensorDisplay();
+            }
+        });
+
+        function updateSensorDisplay() {
+            document.getElementById('pitchVal').textContent = pitch.toFixed(1) + '°';
+            document.getElementById('pitchBar').style.width = ((pitch + 90) / 180 * 100) + '%';
+            document.getElementById('rollVal').textContent = roll.toFixed(1) + '°';
+            document.getElementById('rollBar').style.width = ((roll + 90) / 180 * 100) + '%';
+            document.getElementById('yawVal').textContent = yaw.toFixed(1) + '°';
+            document.getElementById('accelX').textContent = ax.toFixed(2);
+            document.getElementById('accelXBar').style.width = ((ax / 12 + 1) / 2 * 100) + '%';
+            document.getElementById('accelY').textContent = ay.toFixed(2);
+            document.getElementById('accelYBar').style.width = ((ay / 12 + 1) / 2 * 100) + '%';
+            document.getElementById('accelZ').textContent = az.toFixed(2);
+            document.getElementById('accelZBar').style.width = ((az / 12 + 1) / 2 * 100) + '%';
+            drawVisualizer();
+            if (detectorRunning) runDetector();
+        }
+
+        function drawVisualizer() {
+            const c = document.getElementById('visualizer');
+            const ctx = c.getContext('2d');
+            c.width = c.offsetWidth;
+            c.height = c.offsetHeight;
+            const cx = c.width / 2, cy = c.height / 2;
+            ctx.clearRect(0, 0, c.width, c.height);
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(roll * Math.PI / 180);
+            ctx.scale(1, Math.cos(pitch * Math.PI / 180));
+            ctx.fillStyle = '#1a1a2a';
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-30, -50, 60, 100, 8);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // ====== ДЕТЕКТОР ======
+        let detectorRunning = false;
+        let thresholds = { roll: 80, pitch: 110, accelY: 5.0 };
+        let counters = { grab: 0, flip: 0, table: 0, pocket: 0 };
+        let logEntries = [];
+
+        function updateThresholds() {
+            thresholds.roll = parseInt(document.getElementById('th-roll').value);
+            thresholds.pitch = parseInt(document.getElementById('th-pitch').value);
+            thresholds.accelY = document.getElementById('th-accel').value / 10;
+            document.getElementById('th-roll-val').textContent = thresholds.roll + '°';
+            document.getElementById('th-pitch-val').textContent = thresholds.pitch + '°';
+            document.getElementById('th-accel-val').textContent = thresholds.accelY.toFixed(1);
+        }
+
+        function startDetector() {
+            detectorRunning = true;
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('statusBadge').className = 'status-badge active';
+            document.getElementById('statusBadge').textContent = 'АКТИВЕН';
+        }
+
+        function stopDetector() {
+            detectorRunning = false;
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('statusBadge').className = 'status-badge idle';
+            document.getElementById('statusBadge').textContent = 'ОЖИДАНИЕ';
+        }
+
+        function runDetector() {
+            const r = thresholds.roll, p = thresholds.pitch, ayT = thresholds.accelY;
+            let gesture = null;
+
+            if (ay > ayT && Math.abs(pitch) > p) gesture = 'GRAB_SELF';
+            else if (Math.abs(roll) > r) {
+                if (Math.abs(ax) < 0.5 && Math.abs(ay) < 0.5 && Math.abs(pitch) > 170) gesture = 'FLIP_TABLE';
+                else if (Math.abs(az) > 10) gesture = 'FLIP_HAND';
+                else if (Math.abs(az) > 8) gesture = 'POCKET';
+            }
+
+            if (gesture) {
+                document.getElementById('statusBadge').className = 'status-badge triggered';
+                document.getElementById('statusBadge').textContent = gesture;
+                document.getElementById('lastGesture').textContent = new Date().toLocaleTimeString();
+
+                if (gesture === 'GRAB_SELF') counters.grab++;
+                else if (gesture === 'FLIP_HAND') counters.flip++;
+                else if (gesture === 'FLIP_TABLE') counters.table++;
+                else counters.pocket++;
+
+                document.getElementById('cnt-grab').textContent = counters.grab;
+                document.getElementById('cnt-flip').textContent = counters.flip;
+                document.getElementById('cnt-table').textContent = counters.table;
+                document.getElementById('cnt-pocket').textContent = counters.pocket;
+
+                logEntries.push({
+                    time: new Date().toISOString(),
+                    gesture: gesture,
+                    pitch: pitch.toFixed(1),
+                    roll: roll.toFixed(1)
+                });
+                document.getElementById('logCount').textContent = logEntries.length;
+                if (logEntries.length <= 10) updateLogDisplay();
+
+                setTimeout(() => {
+                    if (detectorRunning) {
+                        document.getElementById('statusBadge').className = 'status-badge active';
+                        document.getElementById('statusBadge').textContent = 'АКТИВЕН';
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetCounters() {
+            counters = { grab: 0, flip: 0, table: 0, pocket: 0 };
+            document.getElementById('cnt-grab').textContent = '0';
+            document.getElementById('cnt-flip').textContent = '0';
+            document.getElementById('cnt-table').textContent = '0';
+            document.getElementById('cnt-pocket').textContent = '0';
+        }
+
+        // ====== ЛОГИ ======
+        function updateLogDisplay() {
+            const container = document.getElementById('logContainer');
+            container.innerHTML = logEntries.slice(-20).reverse().map(e =>
+                `<div class="log-entry"><span class="event">${e.gesture}</span> | ${e.time.slice(11,19)} | P:${e.pitch}° R:${e.roll}°</div>`
+            ).join('') || '<div class="log-entry" style="color:var(--muted);">Ожидание событий...</div>';
+        }
+
+        function clearLog() {
+            logEntries = [];
+            document.getElementById('logCount').textContent = '0';
+            updateLogDisplay();
+        }
+
+        function exportLog(format) {
+            if (!logEntries.length) { alert('Нет данных'); return; }
+            let content, fn, mime;
+            if (format === 'csv') {
+                content = 'timestamp,gesture,pitch,roll\n' + logEntries.map(e => `${e.time},${e.gesture},${e.pitch},${e.roll}`).join('\n');
+                fn = 'sensor-lab.csv'; mime = 'text/csv';
+            } else {
+                content = 'Sensor Lab Log\n' + '='.repeat(50) + '\n' + logEntries.map(e => `${e.time} | ${e.gesture.padEnd(12)} | P:${e.pitch}° R:${e.roll}°`).join('\n');
+                fn = 'sensor-lab.txt'; mime = 'text/plain';
+            }
+            const b = new Blob([content], {type: mime});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = fn;
+            a.click();
+        }
+
+        // ====== ТАБЫ ======
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
+        }
+
+        // iOS permission
+        if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+            document.body.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;">
+                <div style="background:var(--panel);padding:32px;border-radius:16px;text-align:center;border:1px solid var(--border);">
+                    <h2 style="color:var(--green);margin-bottom:16px;">Sensor Lab</h2>
+                    <p style="color:var(--muted);margin-bottom:24px;">Нужен доступ к датчикам движения</p>
+                    <button onclick="DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')location.reload()})" style="background:var(--green);color:var(--bg);border:none;padding:16px 32px;border-radius:8px;font-size:16px;cursor:pointer;">РАЗРЕШИТЬ</button>
+                </div>
+            </div>`;
+        }
+    </script>
+</body>
+</html>
