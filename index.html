@@ -132,12 +132,13 @@
             border: 1px solid #1a1a2a;
             border-radius: 8px;
             padding: 10px;
-            max-height: 120px;
-            overflow-y: auto;
+            max-height: 140px;
+            overflow: auto;
             font-size: 10px;
             color: #555;
             margin: 8px 0;
             font-family: monospace;
+            white-space: pre;
         }
 
         .format-toggle {
@@ -161,6 +162,12 @@
             border-color: var(--green);
             color: var(--green);
         }
+
+        .rate-info {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -179,8 +186,9 @@
             </div>
             <div class="status-row">
                 <div class="dot" id="motionDot"></div>
-                <span style="font-size:13px;">Акселерометр</span>
+                <span style="font-size:13px;">Акселерометр / Гироскоп</span>
             </div>
+            <div class="rate-info">Частота записи: <span id="rateInfo">--</span></div>
         </div>
 
         <!-- Ориентация -->
@@ -196,13 +204,24 @@
 
         <!-- Акселерометр -->
         <div class="panel">
-            <h3>⚡ Акселерометр</h3>
+            <h3>⚡ Акселерометр (g)</h3>
             <div class="row"><span class="label">X</span><span class="value" id="accelX" style="color:#ff8844">--</span></div>
             <div class="bar"><div class="bar-fill" id="accelXBar" style="width:50%;background:#ff8844"></div></div>
             <div class="row"><span class="label">Y</span><span class="value" id="accelY" style="color:#44aaff">--</span></div>
             <div class="bar"><div class="bar-fill" id="accelYBar" style="width:50%;background:#44aaff"></div></div>
             <div class="row"><span class="label">Z</span><span class="value" id="accelZ" style="color:#ff44ff">--</span></div>
             <div class="bar"><div class="bar-fill" id="accelZBar" style="width:50%;background:#ff44ff"></div></div>
+        </div>
+
+        <!-- Гироскоп -->
+        <div class="panel">
+            <h3>🌀 Гироскоп (°/с)</h3>
+            <div class="row"><span class="label">α (alpha)</span><span class="value" id="gyroA" style="color:#ff8844">--</span></div>
+            <div class="bar"><div class="bar-fill" id="gyroABar" style="width:50%;background:#ff8844"></div></div>
+            <div class="row"><span class="label">β (beta)</span><span class="value" id="gyroB" style="color:#44aaff">--</span></div>
+            <div class="bar"><div class="bar-fill" id="gyroBBar" style="width:50%;background:#44aaff"></div></div>
+            <div class="row"><span class="label">γ (gamma)</span><span class="value" id="gyroG" style="color:#ff44ff">--</span></div>
+            <div class="bar"><div class="bar-fill" id="gyroGBar" style="width:50%;background:#ff44ff"></div></div>
         </div>
 
         <!-- Визуализация -->
@@ -229,13 +248,20 @@
     </div>
 
     <script>
+        // --- Текущие показания ---
         let pitch = 0, roll = 0, yaw = 0;
         let ax = 0, ay = 0, az = 0;
+        let ga = 0, gb = 0, gg = 0; // gyro alpha, beta, gamma (°/s)
         let hasOrient = false, hasMotion = false;
+
+        // --- Логирование ---
         let logging = false;
         let logEntries = [];
         let exportFormat = 'csv';
+        let logStartTime = 0;   // performance.now() в момент старта
+        let lastEntryTime = 0;  // performance.now() последней записи
 
+        // --- Датчики ---
         window.addEventListener('deviceorientation', e => {
             if (e.alpha != null) {
                 pitch = e.beta || 0;
@@ -247,13 +273,20 @@
         });
 
         window.addEventListener('devicemotion', e => {
+            // Акселерометр
             if (e.accelerationIncludingGravity) {
                 ax = e.accelerationIncludingGravity.x || 0;
                 ay = e.accelerationIncludingGravity.y || 0;
                 az = e.accelerationIncludingGravity.z || 0;
-                hasMotion = true;
-                updateAll();
             }
+            // Гироскоп (°/с)
+            if (e.rotationRate) {
+                ga = e.rotationRate.alpha || 0;
+                gb = e.rotationRate.beta  || 0;
+                gg = e.rotationRate.gamma || 0;
+                hasMotion = true;
+            }
+            updateAll();
         });
 
         function updateAll() {
@@ -268,6 +301,12 @@
             document.getElementById('motionDot').className = 'dot ' + (hasMotion ? 'on' : 'off');
         }
 
+        // Нормализация значения гироскопа в диапазон 0..100% (типичный максимум ~500°/с)
+        function gyroPct(v) {
+            const clamped = Math.max(-500, Math.min(500, v));
+            return ((clamped / 500 + 1) / 2 * 100) + '%';
+        }
+
         function updateDisplay() {
             document.getElementById('pitchVal').textContent = pitch.toFixed(1) + '°';
             document.getElementById('pitchBar').style.width = ((pitch + 90) / 180 * 100) + '%';
@@ -275,12 +314,20 @@
             document.getElementById('rollBar').style.width = ((roll + 90) / 180 * 100) + '%';
             document.getElementById('yawVal').textContent = yaw.toFixed(1) + '°';
             document.getElementById('yawBar').style.width = (yaw / 360 * 100) + '%';
+
             document.getElementById('accelX').textContent = ax.toFixed(2);
             document.getElementById('accelXBar').style.width = ((ax / 12 + 1) / 2 * 100) + '%';
             document.getElementById('accelY').textContent = ay.toFixed(2);
             document.getElementById('accelYBar').style.width = ((ay / 12 + 1) / 2 * 100) + '%';
             document.getElementById('accelZ').textContent = az.toFixed(2);
             document.getElementById('accelZBar').style.width = ((az / 12 + 1) / 2 * 100) + '%';
+
+            document.getElementById('gyroA').textContent = ga.toFixed(1);
+            document.getElementById('gyroABar').style.width = gyroPct(ga);
+            document.getElementById('gyroB').textContent = gb.toFixed(1);
+            document.getElementById('gyroBBar').style.width = gyroPct(gb);
+            document.getElementById('gyroG').textContent = gg.toFixed(1);
+            document.getElementById('gyroGBar').style.width = gyroPct(gg);
         }
 
         function drawPhone() {
@@ -312,6 +359,8 @@
 
         function startLogging() {
             logging = true;
+            logStartTime = performance.now();
+            lastEntryTime = logStartTime;
             document.getElementById('btnStart').disabled = true;
             document.getElementById('btnStop').disabled = false;
         }
@@ -323,17 +372,38 @@
         }
 
         function addEntry() {
+            const now = performance.now();
+            const tMs = now - logStartTime;       // мс от старта записи
+            const dtMs = now - lastEntryTime;     // мс с прошлой записи
+            lastEntryTime = now;
+
             const entry = {
                 timestamp: new Date().toISOString(),
-                pitch, roll, yaw, ax, ay, az
+                tMs,
+                dtMs,
+                pitch, roll, yaw,
+                ax, ay, az,
+                ga, gb, gg
             };
             logEntries.push(entry);
+
             document.getElementById('logCount').textContent = logEntries.length;
+
+            // Оценка частоты (сглаженная)
+            if (dtMs > 0) {
+                const hz = 1000 / dtMs;
+                document.getElementById('rateInfo').textContent = hz.toFixed(1) + ' Hz (Δt=' + dtMs.toFixed(1) + ' мс)';
+            }
+
+            // Предпросмотр: последние 5 записей
             if (logEntries.length % 5 === 0 || logEntries.length <= 5) {
                 const prev = document.getElementById('logPreview');
                 const last = logEntries.slice(-5);
-                prev.innerHTML = last.map(e =>
-                    `${e.timestamp.slice(11,19)} | P:${e.pitch.toFixed(1).padStart(5)} R:${e.roll.toFixed(1).padStart(5)} | Z:${e.az.toFixed(1).padStart(5)}`
+                prev.textContent = last.map(e =>
+                    `t=${e.tMs.toFixed(0).padStart(6)}ms Δ=${e.dtMs.toFixed(1).padStart(5)} | ` +
+                    `P:${e.pitch.toFixed(1).padStart(5)} R:${e.roll.toFixed(1).padStart(5)} Y:${e.yaw.toFixed(1).padStart(5)} | ` +
+                    `A:${e.ax.toFixed(1).padStart(5)} ${e.ay.toFixed(1).padStart(5)} ${e.az.toFixed(1).padStart(5)} | ` +
+                    `G:${e.ga.toFixed(0).padStart(5)} ${e.gb.toFixed(0).padStart(5)} ${e.gg.toFixed(0).padStart(5)}`
                 ).join('\n');
             }
         }
@@ -341,27 +411,48 @@
         function clearLog() {
             logEntries = [];
             document.getElementById('logCount').textContent = '0';
+            document.getElementById('rateInfo').textContent = '--';
             document.getElementById('logPreview').innerHTML = 'Нажмите СТАРТ для записи';
         }
 
         function exportLog() {
             if (!logEntries.length) { alert('Нет данных'); return; }
             let content, fn, mime;
+
             if (exportFormat === 'csv') {
-                const head = 'timestamp,pitch,roll,yaw,accelX,accelY,accelZ\n';
+                const head = 'timestamp,t_ms,dt_ms,pitch,roll,yaw,accelX,accelY,accelZ,gyroAlpha,gyroBeta,gyroGamma\n';
                 content = head + logEntries.map(e =>
-                    `${e.timestamp},${e.pitch},${e.roll},${e.yaw},${e.ax},${e.ay},${e.az}`
+                    `${e.timestamp},${e.tMs.toFixed(2)},${e.dtMs.toFixed(2)},` +
+                    `${e.pitch},${e.roll},${e.yaw},` +
+                    `${e.ax},${e.ay},${e.az},` +
+                    `${e.ga},${e.gb},${e.gg}`
                 ).join('\n');
                 fn = 'sensor-data.csv'; mime = 'text/csv';
             } else {
-                content = 'Sensor Lab Data\n' + '='.repeat(55) + '\n' +
-                    'Timestamp                | Pitch   | Roll    | AccelZ\n' +
-                    '-'.repeat(55) + '\n' +
+                const w = 130;
+                const divider = '='.repeat(w);
+                const subDivider = '-'.repeat(w);
+                content = 'Sensor Lab Data\n' + divider + '\n' +
+                    'Timestamp                | t(ms)   | dt(ms) | Pitch   | Roll    | Yaw     | ' +
+                    'AX      | AY      | AZ      | Gα      | Gβ      | Gγ\n' +
+                    subDivider + '\n' +
                     logEntries.map(e =>
-                        `${e.timestamp.slice(0,23).padEnd(24)} | ${e.pitch.toFixed(1).padStart(6)} | ${e.roll.toFixed(1).padStart(6)} | ${e.az.toFixed(1).padStart(6)}`
-                    ).join('\n') + '\n' + '-'.repeat(55) + `\nВсего: ${logEntries.length}`;
+                        `${e.timestamp.slice(0,23).padEnd(24)} | ` +
+                        `${e.tMs.toFixed(0).padStart(7)} | ` +
+                        `${e.dtMs.toFixed(1).padStart(6)} | ` +
+                        `${e.pitch.toFixed(1).padStart(7)} | ` +
+                        `${e.roll.toFixed(1).padStart(7)} | ` +
+                        `${e.yaw.toFixed(1).padStart(7)} | ` +
+                        `${e.ax.toFixed(2).padStart(7)} | ` +
+                        `${e.ay.toFixed(2).padStart(7)} | ` +
+                        `${e.az.toFixed(2).padStart(7)} | ` +
+                        `${e.ga.toFixed(1).padStart(7)} | ` +
+                        `${e.gb.toFixed(1).padStart(7)} | ` +
+                        `${e.gg.toFixed(1).padStart(7)}`
+                    ).join('\n') + '\n' + subDivider + `\nВсего: ${logEntries.length}`;
                 fn = 'sensor-data.txt'; mime = 'text/plain';
             }
+
             const b = new Blob([content], {type: mime});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(b);
