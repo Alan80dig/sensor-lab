@@ -16,7 +16,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             background: var(--bg);
             color: var(--text);
@@ -126,6 +126,7 @@
 
         button:hover { border-color: var(--green); }
         button.primary { background: var(--green); color: var(--bg); border: none; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
 
         #logPreview {
             background: #08080f;
@@ -248,6 +249,7 @@
     </div>
 
     <script>
+    (function () {
         // --- Текущие показания ---
         let pitch = 0, roll = 0, yaw = 0;
         let ax = 0, ay = 0, az = 0;
@@ -258,11 +260,11 @@
         let logging = false;
         let logEntries = [];
         let exportFormat = 'csv';
-        let logStartTime = 0;   // performance.now() в момент старта
-        let lastEntryTime = 0;  // performance.now() последней записи
+        let logStartTime = 0;
+        let lastEntryTime = 0;
 
-        // --- Датчики ---
-        window.addEventListener('deviceorientation', e => {
+        // --- Обработчики датчиков ---
+        function onOrientation(e) {
             if (e.alpha != null) {
                 pitch = e.beta || 0;
                 roll = e.gamma || 0;
@@ -270,25 +272,29 @@
                 hasOrient = true;
                 updateAll();
             }
-        });
+        }
 
-        window.addEventListener('devicemotion', e => {
-            // Акселерометр
+        function onMotion(e) {
             if (e.accelerationIncludingGravity) {
                 ax = e.accelerationIncludingGravity.x || 0;
                 ay = e.accelerationIncludingGravity.y || 0;
                 az = e.accelerationIncludingGravity.z || 0;
             }
-            // Гироскоп (°/с)
             if (e.rotationRate) {
                 ga = e.rotationRate.alpha || 0;
                 gb = e.rotationRate.beta  || 0;
                 gg = e.rotationRate.gamma || 0;
-                hasMotion = true;
             }
+            hasMotion = true;
             updateAll();
-        });
+        }
 
+        function attachSensors() {
+            window.addEventListener('deviceorientation', onOrientation);
+            window.addEventListener('devicemotion', onMotion);
+        }
+
+        // --- UI ---
         function updateAll() {
             updateDisplay();
             updateStatus();
@@ -301,7 +307,6 @@
             document.getElementById('motionDot').className = 'dot ' + (hasMotion ? 'on' : 'off');
         }
 
-        // Нормализация значения гироскопа в диапазон 0..100% (типичный максимум ~500°/с)
         function gyroPct(v) {
             const clamped = Math.max(-500, Math.min(500, v));
             return ((clamped / 500 + 1) / 2 * 100) + '%';
@@ -331,24 +336,32 @@
         }
 
         function drawPhone() {
-            const c = document.getElementById('visualizer');
-            const ctx = c.getContext('2d');
-            c.width = c.offsetWidth;
-            c.height = c.offsetHeight;
-            const cx = c.width / 2, cy = c.height / 2;
-            ctx.clearRect(0, 0, c.width, c.height);
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(roll * Math.PI / 180);
-            ctx.scale(1, Math.cos(pitch * Math.PI / 180));
-            ctx.fillStyle = '#1a1a2a';
-            ctx.strokeStyle = '#00ff88';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(-30, -50, 60, 100, 8);
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
+            try {
+                const c = document.getElementById('visualizer');
+                const ctx = c.getContext('2d');
+                c.width = c.offsetWidth;
+                c.height = c.offsetHeight;
+                const cx = c.width / 2, cy = c.height / 2;
+                ctx.clearRect(0, 0, c.width, c.height);
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(roll * Math.PI / 180);
+                ctx.scale(1, Math.cos(pitch * Math.PI / 180));
+                ctx.fillStyle = '#1a1a2a';
+                ctx.strokeStyle = '#00ff88';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(-30, -50, 60, 100, 8);
+                } else {
+                    ctx.rect(-30, -50, 60, 100);
+                }
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            } catch (err) {
+                // старые Chrome/WebView — просто пропускаем отрисовку
+            }
         }
 
         function setFormat(f) {
@@ -373,29 +386,25 @@
 
         function addEntry() {
             const now = performance.now();
-            const tMs = now - logStartTime;       // мс от старта записи
-            const dtMs = now - lastEntryTime;     // мс с прошлой записи
+            const tMs = now - logStartTime;
+            const dtMs = now - lastEntryTime;
             lastEntryTime = now;
 
             const entry = {
                 timestamp: new Date().toISOString(),
-                tMs,
-                dtMs,
+                tMs, dtMs,
                 pitch, roll, yaw,
                 ax, ay, az,
                 ga, gb, gg
             };
             logEntries.push(entry);
-
             document.getElementById('logCount').textContent = logEntries.length;
 
-            // Оценка частоты (сглаженная)
             if (dtMs > 0) {
                 const hz = 1000 / dtMs;
                 document.getElementById('rateInfo').textContent = hz.toFixed(1) + ' Hz (Δt=' + dtMs.toFixed(1) + ' мс)';
             }
 
-            // Предпросмотр: последние 5 записей
             if (logEntries.length % 5 === 0 || logEntries.length <= 5) {
                 const prev = document.getElementById('logPreview');
                 const last = logEntries.slice(-5);
@@ -412,7 +421,7 @@
             logEntries = [];
             document.getElementById('logCount').textContent = '0';
             document.getElementById('rateInfo').textContent = '--';
-            document.getElementById('logPreview').innerHTML = 'Нажмите СТАРТ для записи';
+            document.getElementById('logPreview').textContent = 'Нажмите СТАРТ для записи';
         }
 
         function exportLog() {
@@ -458,17 +467,62 @@
             a.href = URL.createObjectURL(b);
             a.download = fn;
             a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
         }
 
-        if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
-            document.body.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;">
-                <div style="background:#12121a;padding:32px;border-radius:16px;text-align:center;border:1px solid #2a2a3a;">
+        // Экспортируем в window (нужно для onclick в HTML)
+        window.setFormat = setFormat;
+        window.startLogging = startLogging;
+        window.stopLogging = stopLogging;
+        window.exportLog = exportLog;
+        window.clearLog = clearLog;
+
+        // --- Разрешения ---
+        const needsPermission =
+            typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function';
+
+        if (needsPermission) {
+            const overlay = document.createElement('div');
+            overlay.id = 'permOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;';
+            overlay.innerHTML = `
+                <div style="background:#12121a;padding:32px;border-radius:16px;text-align:center;border:1px solid #2a2a3a;max-width:320px;">
                     <h2 style="color:#00ff88;margin-bottom:16px;">Sensor Lab</h2>
-                    <p style="color:#aaa;margin-bottom:24px;">Нужен доступ к датчикам движения</p>
-                    <button onclick="DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')location.reload()})" style="background:#00ff88;color:#000;border:none;padding:16px 32px;border-radius:8px;font-size:16px;cursor:pointer;">РАЗРЕШИТЬ</button>
-                </div>
-            </div>`;
+                    <p style="color:#aaa;margin-bottom:24px;">Нужен доступ к датчикам движения (ориентация + движение)</p>
+                    <button id="permBtn" style="background:#00ff88;color:#000;border:none;padding:16px 32px;border-radius:8px;font-size:16px;cursor:pointer;">РАЗРЕШИТЬ</button>
+                    <p id="permErr" style="color:#ff6666;margin-top:12px;font-size:12px;"></p>
+                </div>`;
+            document.body.appendChild(overlay);
+
+            document.getElementById('permBtn').addEventListener('click', async () => {
+                const errEl = document.getElementById('permErr');
+                errEl.textContent = '';
+                try {
+                    let orientOk = 'granted';
+                    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                        orientOk = await DeviceOrientationEvent.requestPermission();
+                    }
+                    let motionOk = 'granted';
+                    if (typeof DeviceMotionEvent !== 'undefined' &&
+                        typeof DeviceMotionEvent.requestPermission === 'function') {
+                        motionOk = await DeviceMotionEvent.requestPermission();
+                    }
+                    if (orientOk === 'granted' && motionOk === 'granted') {
+                        overlay.remove();
+                        attachSensors();
+                    } else {
+                        errEl.textContent = 'Доступ отклонён. Разрешите в настройках браузера.';
+                    }
+                } catch (err) {
+                    errEl.textContent = 'Ошибка: ' + err.message;
+                }
+            });
+        } else {
+            // Android Chrome / десктоп: разрешение не требуется отдельным вызовом
+            attachSensors();
         }
+    })();
     </script>
 </body>
 </html>
