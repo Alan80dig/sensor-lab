@@ -474,12 +474,33 @@
 
         checkRestore();
 
-        // ===== Разрешения =====
+                // ===== Разрешения =====
+        
+        // Создаем баннер для Android/Desktop, где нет системного API, но нужен жест
+        function showAndroidPermissionBanner() {
+            const banner = document.createElement('div');
+            banner.id = 'androidPermBanner';
+            banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#12121a;border:1px solid #00ff88;border-radius:12px;padding:16px;text-align:center;z-index:998;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+            banner.innerHTML = `
+                <p style="color:#aaa;margin-bottom:12px;font-size:14px;">Разрешите доступ к датчикам движения (гироскоп/ориентация)</p>
+                <button id="androidPermBtn" style="background:#00ff88;color:#000;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">ВКЛЮЧИТЬ ДАТЧИКИ</button>
+            `;
+            document.body.appendChild(banner);
+
+            document.getElementById('androidPermBtn').addEventListener('click', () => {
+                // Просто вешаем обработчики. Это действие (клик) заставит Chrome 
+                // показать системное окно или молча выдать доступ
+                attachSensors();
+                banner.remove();
+            });
+        }
+
         const needsPermission =
             typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function';
 
         if (needsPermission) {
+            // Ветка iOS (там есть requestPermission)
             const overlay = document.createElement('div');
             overlay.id = 'permOverlay';
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;';
@@ -508,7 +529,14 @@
                 }
             });
         } else {
-            attachSensors();
+            // Ветка Android / Desktop
+            // Не подписываемся сразу, а показываем баннер с кнопкой
+            if (typeof DeviceOrientationEvent !== 'undefined') {
+                showAndroidPermissionBanner();
+            } else {
+                // Если датчиков вообще нет (десктоп)
+                document.getElementById('orientDot').className = 'dot off';
+            }
         }
     })();
     </script>
