@@ -4,15 +4,16 @@
     <meta name="google-site-verification" content="IlkBNfrEeaiV5uQUGH4HvcYSXqLSU_zIBv5fUuOk6eg" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Lab</title>
+    <title>Sensor Lab — TWIST</title>
     <style>
         :root {
             --bg: #0a0a0f; --panel: #12121a; --border: #2a2a3a;
             --green: #00ff88; --text: #e0e0e0; --muted: #666;
+            --accent: #ffaa00;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: var(--bg); color: var(--text); font-family: 'SF Mono','Courier New',monospace; min-height: 100vh; }
-        .container { max-width: 500px; margin: 0 auto; padding: 16px; }
+        .container { max-width: 560px; margin: 0 auto; padding: 16px; }
         .header { text-align: center; padding: 24px 0 16px; }
         .header h1 { font-size: 22px; letter-spacing: 4px; color: var(--green); }
         .header .subtitle { font-size: 11px; color: var(--muted); margin-top: 4px; }
@@ -21,9 +22,10 @@
         .row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
         .label { font-size: 13px; color: #aaa; }
         .value { font-size: 16px; font-weight: bold; color: var(--green); }
+        .value.accent { color: var(--accent); }
+        .value.big { font-size: 20px; }
         .bar { height: 4px; background: #1a1a2a; border-radius: 2px; margin: 4px 0 10px; overflow: hidden; }
-        .bar-fill { height: 100%; border-radius: 2px; transition: width 0.15s ease; }
-        canvas { width: 100%; height: 150px; background: #0a0a12; border-radius: 12px; margin-top: 8px; }
+        .bar-fill { height: 100%; border-radius: 2px; transition: width 0.1s ease; }
         .status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .dot { width: 8px; height: 8px; border-radius: 50%; }
         .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
@@ -38,66 +40,60 @@
         .format-btn { padding: 6px 14px; font-size: 11px; background: var(--panel); border: 1px solid var(--border); color: var(--muted); border-radius: 6px; cursor: pointer; }
         .format-btn.active { background: #1a2a1a; border-color: var(--green); color: var(--green); }
         .rate-info { font-size: 11px; color: var(--muted); margin-top: 6px; }
-        .event-marker { color: #ffaa00; font-weight: bold; }
         .restore-bar { display: none; background: #1a2a1a; border: 1px solid var(--green); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; font-size: 11px; }
         .restore-bar.show { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .restore-bar button { padding: 4px 10px; font-size: 11px; }
+        .threshold-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
+        .badge.hit { background: #2a1a00; border-color: var(--accent); color: var(--accent); font-weight: bold; }
+        .val-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+        .val-grid .row { padding: 2px 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>SENSOR LAB</h1>
-            <div class="subtitle">Инструмент для Ghost Lock</div>
+            <h1>SENSOR LAB · TWIST</h1>
+            <div class="subtitle">Настройка жеста поворота кисти</div>
         </div>
 
         <div class="panel">
             <h3>📡 Подключение</h3>
-            <div class="status-row"><div class="dot" id="orientDot"></div><span style="font-size:13px;">Ориентация</span></div>
-            <div class="status-row"><div class="dot" id="motionDot"></div><span style="font-size:13px;">Акселерометр</span></div>
+            <div class="status-row"><div class="dot" id="orientDot"></div><span style="font-size:13px;">Ориентация (roll/yaw)</span></div>
             <div class="rate-info">Частота записи: <span id="rateInfo">--</span></div>
             <div class="rate-info">Состояние: <span id="visState">visible</span></div>
         </div>
 
         <div class="panel">
-            <h3>📐 Ориентация</h3>
-            <div class="row"><span class="label">Pitch</span><span class="value" id="pitchVal">--°</span></div>
-            <div class="bar"><div class="bar-fill" id="pitchBar" style="width:50%;background:var(--green)"></div></div>
-            <div class="row"><span class="label">Roll</span><span class="value" id="rollVal">--°</span></div>
-            <div class="bar"><div class="bar-fill" id="rollBar" style="width:50%;background:#44aaff"></div></div>
-            <div class="row"><span class="label">Yaw</span><span class="value" id="yawVal">--°</span></div>
-            <div class="bar"><div class="bar-fill" id="yawBar" style="width:50%;background:#ff44ff"></div></div>
-        </div>
-
-        <div class="panel">
-            <h3>⚡ Акселерометр (g)</h3>
-            <div class="row"><span class="label">X</span><span class="value" id="accelX" style="color:#ff8844">--</span></div>
-            <div class="bar"><div class="bar-fill" id="accelXBar" style="width:50%;background:#ff8844"></div></div>
-            <div class="row"><span class="label">Y</span><span class="value" id="accelY" style="color:#44aaff">--</span></div>
-            <div class="bar"><div class="bar-fill" id="accelYBar" style="width:50%;background:#44aaff"></div></div>
-            <div class="row"><span class="label">Z</span><span class="value" id="accelZ" style="color:#ff44ff">--</span></div>
-            <div class="bar"><div class="bar-fill" id="accelZBar" style="width:50%;background:#ff44ff"></div></div>
-        </div>
-
-        <div class="panel">
-            <h3>📊 Метрики GestureDetector</h3>
-            <div class="row"><span class="label">pitchSpeed (°/с)</span><span class="value" id="pitchSpeedVal">--</span></div>
-            <div class="row"><span class="label">axSpeed wrap (g/с)</span><span class="value" id="axSpeedWrapVal">--</span></div>
-            <div class="row"><span class="label">axSpeed nowrap (g/с)</span><span class="value" id="axSpeedNoWrapVal">--</span></div>
-            <div class="row"><span class="label">deltaPitch</span><span class="value" id="deltaPitchVal">--</span></div>
-            <div class="row"><span class="label">basePitch</span><span class="value" id="basePitchVal">--</span></div>
+            <h3>🎯 TWIST — главные метрики</h3>
+            <div class="row"><span class="label">twistAngle</span><span class="value big accent" id="twistAngleVal">--°</span></div>
+            <div class="bar"><div class="bar-fill" id="twistAngleBar" style="width:0%;background:var(--accent)"></div></div>
             <div class="row"><span class="label">frozen</span><span class="value" id="frozenVal">--</span></div>
+            <div class="threshold-badges">
+                <span class="badge" id="badge60">60°</span>
+                <span class="badge" id="badge90">90°</span>
+                <span class="badge" id="badge120">120°</span>
+            </div>
         </div>
 
         <div class="panel">
-            <h3>📱 Положение телефона</h3>
-            <canvas id="visualizer"></canvas>
+            <h3>📐 roll / yaw</h3>
+            <div class="val-grid">
+                <div class="row"><span class="label">roll</span><span class="value" id="rollVal">--°</span></div>
+                <div class="row"><span class="label">yaw</span><span class="value" id="yawVal">--°</span></div>
+                <div class="row"><span class="label">deltaRoll</span><span class="value" id="deltaRollVal">--°</span></div>
+                <div class="row"><span class="label">deltaYaw</span><span class="value" id="deltaYawVal">--°</span></div>
+                <div class="row"><span class="label">rollSpeed</span><span class="value" id="rollSpeedVal">--</span></div>
+                <div class="row"><span class="label">yawSpeed</span><span class="value" id="yawSpeedVal">--</span></div>
+                <div class="row"><span class="label">baseRoll</span><span class="value" id="baseRollVal">--°</span></div>
+                <div class="row"><span class="label">baseYaw</span><span class="value" id="baseYawVal">--°</span></div>
+            </div>
         </div>
 
         <div class="panel">
             <h3>📋 Запись данных <span style="font-size:11px;color:var(--muted);">(записей: <span id="logCount">0</span>)</span></h3>
             <div id="restoreBar" class="restore-bar">
-                <span>Найдена прошлая сессия (<span id="restoreCount">0</span> записей)</span>
+                <span>Найдена прошлая сессия (<span id="restoreCount">0</span>)</span>
                 <span>
                     <button onclick="restoreLog()">Восстановить</button>
                     <button onclick="discardRestore()">Удалить</button>
@@ -119,18 +115,24 @@
 
     <script>
     (function () {
-        // ===== Константы (из GestureDetector.kt) =====
+        // ===== Константы =====
         const BUFFER_CAPACITY = 10;
         const BASE_ALPHA = 0.01;
-        const FREEZE_SPEED_THRESHOLD = 60;   // °/с
+        const FREEZE_SPEED_THRESHOLD = 25;   // °/с по rollSpeed
         const MIN_DT_SEC = 0.003;
         const MAX_DT_SEC = 0.05;
-        const STORAGE_KEY = 'sensorlab_log_v2';
+        const STORAGE_KEY = 'sensorlab_twist_v1';
+        const TWIST_THRESHOLDS = [60, 90, 120];
 
-        // ===== Текущие показания =====
-        let pitch = 0, roll = 0, yaw = 0;
-        let ax = 0, ay = 0, az = 0;
-        let hasOrient = false, hasMotion = false;
+        // ===== Состояние =====
+        let roll = 0, yaw = 0;
+        let rollSpeed = 0, yawSpeed = 0;
+        let deltaRoll = 0, deltaYaw = 0;
+        let baseRoll = 0, baseYaw = 0;
+        let twistAngle = 0;
+        let frozen = false;
+        let hasOrient = false;
+        let baseInitialized = false;
 
         // ===== Логирование =====
         let logging = false;
@@ -139,7 +141,7 @@
         let logStartTime = 0;
         let lastEntryTime = 0;
 
-        // ===== CircularBuffer (как в Kotlin) =====
+        // ===== CircularBuffer =====
         class CircularBuffer {
             constructor(capacity) {
                 this.capacity = capacity;
@@ -148,28 +150,21 @@
                 this.writeIndex = 0;
                 this.size = 0;
             }
-            add(value, timestampNs) {
+            add(value, ts) {
                 this.values[this.writeIndex] = value;
-                this.timestamps[this.writeIndex] = timestampNs;
+                this.timestamps[this.writeIndex] = ts;
                 this.writeIndex = (this.writeIndex + 1) % this.capacity;
                 if (this.size < this.capacity) this.size++;
             }
-            valueAt(i) { return this.values[this.physicalIndex(i)]; }
-            timestampAt(i) { return this.timestamps[this.physicalIndex(i)]; }
-            physicalIndex(i) {
-                const start = this.size < this.capacity ? 0 : this.writeIndex;
-                return (start + i) % this.capacity;
-            }
+            valueAt(i) { return this.values[(this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
+            timestampAt(i) { return this.timestamps[(this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
             clear() { this.values.fill(0); this.timestamps.fill(0); this.writeIndex = 0; this.size = 0; }
         }
 
-        const pitchWindow = new CircularBuffer(BUFFER_CAPACITY);
-        const axWindow = new CircularBuffer(BUFFER_CAPACITY);
+        const rollWindow = new CircularBuffer(BUFFER_CAPACITY);
+        const yawWindow  = new CircularBuffer(BUFFER_CAPACITY);
 
-        let basePitch = 0, baseRoll = 0, baseInitialized = false;
-        let frozen = false;
-
-        // ===== calculateSpeed — точно как в Kotlin =====
+        // ===== calculateSpeed (как в Kotlin) =====
         function calculateSpeed(window, useWrap) {
             if (window.size < 3) return 0;
             const n = window.size;
@@ -188,29 +183,29 @@
             return totalTimeSec > 0 ? accumulated / totalTimeSec : 0;
         }
 
-        // ===== Датчики =====
-        function onOrientation(e) {
-            if (e.alpha == null) return;
-            pitch = e.beta || 0;
-            roll = e.gamma || 0;
-            yaw = e.alpha || 0;
-            hasOrient = true;
-            onSample();
+        function normalize180(v) {
+            if (v > 180) return v - 360;
+            if (v < -180) return v + 360;
+            return v;
         }
 
-        function onMotion(e) {
-            if (e.accelerationIncludingGravity) {
-                ax = e.accelerationIncludingGravity.x || 0;
-                ay = e.accelerationIncludingGravity.y || 0;
-                az = e.accelerationIncludingGravity.z || 0;
-            }
-            hasMotion = true;
+        function normalize360(v) {
+            v = v % 360;
+            if (v < 0) v += 360;
+            return v;
+        }
+
+        // ===== Обработчик ориентации =====
+        function onOrientation(e) {
+            if (e.gamma == null) return;
+            roll = e.gamma || 0;
+            yaw  = e.alpha != null ? normalize360(e.alpha) : 0;
+            hasOrient = true;
             onSample();
         }
 
         function attachSensors() {
             window.addEventListener('deviceorientation', onOrientation);
-            window.addEventListener('devicemotion', onMotion);
         }
 
         // ===== Главный обработчик сэмпла =====
@@ -218,93 +213,61 @@
             const nowNs = performance.now() * 1_000_000;
 
             if (!baseInitialized) {
-                basePitch = pitch; baseRoll = roll; baseInitialized = true;
-                pitchWindow.add(pitch, nowNs);
-                axWindow.add(ax, nowNs);
-                updateAll(0, 0, 0, 0, frozen);
+                baseRoll = roll; baseYaw = yaw; baseInitialized = true;
+                rollWindow.add(roll, nowNs);
+                yawWindow.add(yaw, nowNs);
+                updateAll();
                 return;
             }
 
-            pitchWindow.add(pitch, nowNs);
-            axWindow.add(ax, nowNs);
+            rollWindow.add(roll, nowNs);
+            yawWindow.add(yaw, nowNs);
 
-            const pitchSpeed = calculateSpeed(pitchWindow, true);   // для углов wrap оправдан
-            const axSpeedWrap = calculateSpeed(axWindow, true);     // как в Kotlin (баг?)
-            const axSpeedNoWrap = calculateSpeed(axWindow, false);  // правильно для ax
+            // Скорости: roll — без wrap (диапазон -90..+90), yaw — с wrap (0..360)
+            rollSpeed = calculateSpeed(rollWindow, false);
+            yawSpeed  = calculateSpeed(yawWindow, true);
 
-            // Адаптивная база
-            frozen = pitchSpeed >= FREEZE_SPEED_THRESHOLD;
+            // Адаптивная база — заморозка по rollSpeed
+            frozen = rollSpeed >= FREEZE_SPEED_THRESHOLD;
             if (!frozen) {
-                basePitch = BASE_ALPHA * pitch + (1 - BASE_ALPHA) * basePitch;
-                baseRoll  = BASE_ALPHA * roll  + (1 - BASE_ALPHA) * baseRoll;
+                baseRoll = BASE_ALPHA * roll + (1 - BASE_ALPHA) * baseRoll;
+                // Для yaw корректно через нормализованную дельту
+                const dYaw = normalize180(yaw - baseYaw);
+                baseYaw = normalize360(baseYaw + BASE_ALPHA * dYaw);
             }
 
-            let rawDeltaPitch = pitch - basePitch;
-            if (rawDeltaPitch > 180) rawDeltaPitch -= 360;
-            else if (rawDeltaPitch < -180) rawDeltaPitch += 360;
-            const deltaPitch = rawDeltaPitch;
+            deltaRoll = normalize180(roll - baseRoll);
+            deltaYaw  = normalize180(yaw - baseYaw);
+            twistAngle = Math.sqrt(deltaRoll * deltaRoll + deltaYaw * deltaYaw);
 
-            updateAll(pitchSpeed, axSpeedWrap, axSpeedNoWrap, deltaPitch, frozen);
+            updateAll();
 
-            if (logging) addEntry(pitchSpeed, axSpeedWrap, axSpeedNoWrap, deltaPitch, frozen);
+            if (logging) addEntry();
         }
 
-        function updateAll(pitchSpeed, axSpeedWrap, axSpeedNoWrap, deltaPitch, frozenFlag) {
-            updateDisplay(pitchSpeed, axSpeedWrap, axSpeedNoWrap, deltaPitch, frozenFlag);
-            updateStatus();
-            drawPhone();
-        }
-
-        function updateStatus() {
+        // ===== UI =====
+        function updateAll() {
             document.getElementById('orientDot').className = 'dot ' + (hasOrient ? 'on' : 'off');
-            document.getElementById('motionDot').className = 'dot ' + (hasMotion ? 'on' : 'off');
-        }
 
-        function updateDisplay(pitchSpeed, axSpeedWrap, axSpeedNoWrap, deltaPitch, frozenFlag) {
-            document.getElementById('pitchVal').textContent = pitch.toFixed(1) + '°';
-            document.getElementById('pitchBar').style.width = ((pitch + 90) / 180 * 100) + '%';
             document.getElementById('rollVal').textContent = roll.toFixed(1) + '°';
-            document.getElementById('rollBar').style.width = ((roll + 90) / 180 * 100) + '%';
             document.getElementById('yawVal').textContent = yaw.toFixed(1) + '°';
-            document.getElementById('yawBar').style.width = (yaw / 360 * 100) + '%';
+            document.getElementById('deltaRollVal').textContent = deltaRoll.toFixed(1) + '°';
+            document.getElementById('deltaYawVal').textContent = deltaYaw.toFixed(1) + '°';
+            document.getElementById('rollSpeedVal').textContent = rollSpeed.toFixed(1);
+            document.getElementById('yawSpeedVal').textContent = yawSpeed.toFixed(1);
+            document.getElementById('baseRollVal').textContent = baseRoll.toFixed(1) + '°';
+            document.getElementById('baseYawVal').textContent = baseYaw.toFixed(1) + '°';
 
-            document.getElementById('accelX').textContent = ax.toFixed(2);
-            document.getElementById('accelXBar').style.width = ((ax / 12 + 1) / 2 * 100) + '%';
-            document.getElementById('accelY').textContent = ay.toFixed(2);
-            document.getElementById('accelYBar').style.width = ((ay / 12 + 1) / 2 * 100) + '%';
-            document.getElementById('accelZ').textContent = az.toFixed(2);
-            document.getElementById('accelZBar').style.width = ((az / 12 + 1) / 2 * 100) + '%';
+            document.getElementById('twistAngleVal').textContent = twistAngle.toFixed(1) + '°';
+            document.getElementById('twistAngleBar').style.width = Math.min(100, twistAngle / 150 * 100) + '%';
 
-            document.getElementById('pitchSpeedVal').textContent = pitchSpeed.toFixed(1);
-            document.getElementById('axSpeedWrapVal').textContent = axSpeedWrap.toFixed(1);
-            document.getElementById('axSpeedNoWrapVal').textContent = axSpeedNoWrap.toFixed(1);
-            document.getElementById('deltaPitchVal').textContent = deltaPitch.toFixed(1);
-            document.getElementById('basePitchVal').textContent = basePitch.toFixed(1);
-            document.getElementById('frozenVal').textContent = frozenFlag ? 'ДА' : 'нет';
-            document.getElementById('frozenVal').style.color = frozenFlag ? '#ffaa00' : 'var(--green)';
-        }
+            const frozenEl = document.getElementById('frozenVal');
+            frozenEl.textContent = frozen ? 'ДА' : 'нет';
+            frozenEl.style.color = frozen ? 'var(--accent)' : 'var(--green)';
 
-        function drawPhone() {
-            try {
-                const c = document.getElementById('visualizer');
-                const ctx = c.getContext('2d');
-                c.width = c.offsetWidth;
-                c.height = c.offsetHeight;
-                const cx = c.width / 2, cy = c.height / 2;
-                ctx.clearRect(0, 0, c.width, c.height);
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(roll * Math.PI / 180);
-                ctx.scale(1, Math.cos(pitch * Math.PI / 180));
-                ctx.fillStyle = '#1a1a2a';
-                ctx.strokeStyle = '#00ff88';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                if (ctx.roundRect) ctx.roundRect(-30, -50, 60, 100, 8);
-                else ctx.rect(-30, -50, 60, 100);
-                ctx.fill(); ctx.stroke();
-                ctx.restore();
-            } catch (e) {}
+            TWIST_THRESHOLDS.forEach(th => {
+                document.getElementById('badge' + th).classList.toggle('hit', twistAngle >= th);
+            });
         }
 
         // ===== Логирование =====
@@ -328,7 +291,7 @@
             document.getElementById('btnStop').disabled = true;
         }
 
-        function addEntry(pitchSpeed, axSpeedWrap, axSpeedNoWrap, deltaPitch, frozenFlag, eventName) {
+        function addEntry() {
             const now = performance.now();
             const tMs = now - logStartTime;
             const dtMs = now - lastEntryTime;
@@ -336,13 +299,16 @@
 
             const entry = {
                 timestamp: new Date().toISOString(),
-                tNs: Math.round(now * 1_000_000),
                 tMs, dtMs,
-                pitch, roll, yaw,
-                ax, ay, az,
-                pitchSpeed, axSpeedWrap, axSpeedNoWrap,
-                deltaPitch, basePitch, frozen: frozenFlag,
-                event: eventName || ''
+                roll, yaw,
+                rollSpeed, yawSpeed,
+                deltaRoll, deltaYaw,
+                baseRoll, baseYaw,
+                twistAngle,
+                frozen: frozen ? 1 : 0,
+                twist60:  twistAngle >= 60  ? 1 : 0,
+                twist90:  twistAngle >= 90  ? 1 : 0,
+                twist120: twistAngle >= 120 ? 1 : 0
             };
             logEntries.push(entry);
             document.getElementById('logCount').textContent = logEntries.length;
@@ -351,30 +317,27 @@
                 const hz = 1000 / dtMs;
                 document.getElementById('rateInfo').textContent = hz.toFixed(1) + ' Hz (Δt=' + dtMs.toFixed(1) + ' мс)';
             }
-
             if (logEntries.length % 5 === 0 || logEntries.length <= 5) updatePreview();
         }
 
-        // Маркер события (скрытие/показ/выгрузка страницы)
         function addEventMarker(eventName) {
             if (!logging) return;
-            // Для маркера не пересчитываем метрики — используем последние известные
             const now = performance.now();
             const tMs = now - logStartTime;
             const dtMs = now - lastEntryTime;
             lastEntryTime = now;
-
-            const entry = {
+            logEntries.push({
                 timestamp: new Date().toISOString(),
-                tNs: Math.round(now * 1_000_000),
                 tMs, dtMs,
-                pitch, roll, yaw,
-                ax, ay, az,
-                pitchSpeed: 0, axSpeedWrap: 0, axSpeedNoWrap: 0,
-                deltaPitch: 0, basePitch, frozen: false,
+                roll, yaw,
+                rollSpeed: 0, yawSpeed: 0,
+                deltaRoll: 0, deltaYaw: 0,
+                baseRoll, baseYaw,
+                twistAngle: 0,
+                frozen: 0,
+                twist60: 0, twist90: 0, twist120: 0,
                 event: eventName
-            };
-            logEntries.push(entry);
+            });
             document.getElementById('logCount').textContent = logEntries.length;
             updatePreview();
         }
@@ -383,13 +346,11 @@
             const prev = document.getElementById('logPreview');
             const last = logEntries.slice(-8);
             prev.textContent = last.map(e => {
-                if (e.event) {
-                    return `[${e.event}] t=${e.tMs.toFixed(0)}ms`;
-                }
-                return `t=${e.tMs.toFixed(0)}ms | ` +
-                    `P:${e.pitch.toFixed(1).padStart(6)} Δ:${e.deltaPitch.toFixed(1).padStart(6)} ` +
-                    `pS:${e.pitchSpeed.toFixed(0).padStart(4)} axS:${e.axSpeedNoWrap.toFixed(0).padStart(4)} ` +
-                    `F:${e.frozen ? 'Y' : 'n'}`;
+                if (e.event) return `[${e.event}] t=${e.tMs.toFixed(0)}ms`;
+                return `t=${e.tMs.toFixed(0).padStart(6)} | ` +
+                    `R:${e.roll.toFixed(1).padStart(6)} Y:${e.yaw.toFixed(1).padStart(6)} | ` +
+                    `ΔR:${e.deltaRoll.toFixed(1).padStart(6)} ΔY:${e.deltaYaw.toFixed(1).padStart(6)} | ` +
+                    `T:${e.twistAngle.toFixed(1).padStart(6)} F:${e.frozen}`;
             }).join('\n');
         }
 
@@ -406,37 +367,43 @@
             let content, fn, mime;
 
             if (exportFormat === 'csv') {
-                const head = 'timestamp,t_ns,t_ms,dt_ms,pitch,roll,yaw,accelX,accelY,accelZ,pitchSpeed,axSpeedWrap,axSpeedNoWrap,deltaPitch,basePitch,frozen,event\n';
+                const head = 'timestamp,t_ms,dt_ms,roll,yaw,rollSpeed,yawSpeed,deltaRoll,deltaYaw,baseRoll,baseYaw,twistAngle,frozen,twist60,twist90,twist120,event\n';
                 content = head + logEntries.map(e =>
-                    `${e.timestamp},${e.tNs},${e.tMs.toFixed(2)},${e.dtMs.toFixed(2)},` +
-                    `${e.pitch.toFixed(3)},${e.roll.toFixed(3)},${e.yaw.toFixed(3)},` +
-                    `${e.ax.toFixed(4)},${e.ay.toFixed(4)},${e.az.toFixed(4)},` +
-                    `${e.pitchSpeed.toFixed(2)},${e.axSpeedWrap.toFixed(2)},${e.axSpeedNoWrap.toFixed(2)},` +
-                    `${e.deltaPitch.toFixed(3)},${e.basePitch.toFixed(3)},${e.frozen ? 1 : 0},` +
+                    `${e.timestamp},${e.tMs.toFixed(2)},${e.dtMs.toFixed(2)},` +
+                    `${e.roll.toFixed(3)},${e.yaw.toFixed(3)},` +
+                    `${e.rollSpeed.toFixed(2)},${e.yawSpeed.toFixed(2)},` +
+                    `${e.deltaRoll.toFixed(3)},${e.deltaYaw.toFixed(3)},` +
+                    `${e.baseRoll.toFixed(3)},${e.baseYaw.toFixed(3)},` +
+                    `${e.twistAngle.toFixed(2)},` +
+                    `${e.frozen},${e.twist60},${e.twist90},${e.twist120},` +
                     `${e.event || ''}`
                 ).join('\n');
-                fn = 'sensor-data.csv'; mime = 'text/csv';
+                fn = 'twist-data.csv'; mime = 'text/csv';
             } else {
-                const w = 170;
+                const w = 160;
                 const divider = '='.repeat(w);
                 const subDivider = '-'.repeat(w);
-                content = 'Sensor Lab Data (GestureDetector metrics)\n' + divider + '\n' +
-                    'Timestamp                | t(ms)   | dt(ms) | Pitch   | deltaP  | pSpeed  | axS_wrap| axS_nowr| baseP   | frz | Event\n' +
+                content = 'Sensor Lab TWIST\n' + divider + '\n' +
+                    'Timestamp                | t(ms)   | dt(ms) | Roll    | Yaw     | dRoll   | dYaw    | rSpeed  | ySpeed  | baseR   | baseY   | Twist   | frz | 60 90 120 | Event\n' +
                     subDivider + '\n' +
                     logEntries.map(e =>
                         `${e.timestamp.slice(0,23).padEnd(24)} | ` +
                         `${e.tMs.toFixed(0).padStart(7)} | ` +
                         `${e.dtMs.toFixed(1).padStart(6)} | ` +
-                        `${e.pitch.toFixed(1).padStart(7)} | ` +
-                        `${e.deltaPitch.toFixed(1).padStart(7)} | ` +
-                        `${e.pitchSpeed.toFixed(1).padStart(7)} | ` +
-                        `${e.axSpeedWrap.toFixed(1).padStart(7)} | ` +
-                        `${e.axSpeedNoWrap.toFixed(1).padStart(7)} | ` +
-                        `${e.basePitch.toFixed(1).padStart(7)} | ` +
-                        `${e.frozen ? ' Y ' : ' n '} | ` +
+                        `${e.roll.toFixed(1).padStart(7)} | ` +
+                        `${e.yaw.toFixed(1).padStart(7)} | ` +
+                        `${e.deltaRoll.toFixed(1).padStart(7)} | ` +
+                        `${e.deltaYaw.toFixed(1).padStart(7)} | ` +
+                        `${e.rollSpeed.toFixed(1).padStart(7)} | ` +
+                        `${e.yawSpeed.toFixed(1).padStart(7)} | ` +
+                        `${e.baseRoll.toFixed(1).padStart(7)} | ` +
+                        `${e.baseYaw.toFixed(1).padStart(7)} | ` +
+                        `${e.twistAngle.toFixed(1).padStart(7)} | ` +
+                        `${e.frozen}   | ` +
+                        `${e.twist60}  ${e.twist90}  ${e.twist120}   | ` +
                         `${e.event || ''}`
                     ).join('\n') + '\n' + subDivider + `\nВсего: ${logEntries.length}`;
-                fn = 'sensor-data.txt'; mime = 'text/plain';
+                fn = 'twist-data.txt'; mime = 'text/plain';
             }
 
             const b = new Blob([content], {type: mime});
@@ -447,16 +414,13 @@
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
         }
 
-        // ===== Автосохранение в localStorage =====
+        // ===== Автосохранение =====
         function saveToStorage() {
             if (!logEntries.length) return;
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries));
             } catch (e) {
-                // quota exceeded — сохраняем только последние 2000
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries.slice(-2000)));
-                } catch (e2) {}
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries.slice(-2000))); } catch (e2) {}
             }
         }
 
@@ -472,7 +436,6 @@
                 }
             } catch (e) {}
         }
-
         function restoreLog() {
             if (!window.__restoreCandidate) return;
             logEntries = window.__restoreCandidate;
@@ -488,24 +451,16 @@
             document.getElementById('restoreBar').classList.remove('show');
         }
 
-        // ===== Visibility / page lifecycle =====
+        // ===== Visibility =====
         function onVisibilityChange() {
             const hidden = document.hidden;
             document.getElementById('visState').textContent = hidden ? 'hidden' : 'visible';
-            if (hidden) {
-                addEventMarker('hidden');
-                saveToStorage();
-            } else {
-                addEventMarker('visible');
-            }
+            if (hidden) { addEventMarker('hidden'); saveToStorage(); }
+            else { addEventMarker('visible'); }
         }
+        function onPageHide() { addEventMarker('pagehide'); saveToStorage(); }
 
-        function onPageHide() {
-            addEventMarker('pagehide');
-            saveToStorage();
-        }
-
-        // ===== Экспорт в window для onclick =====
+        // ===== window.* для onclick =====
         window.setFormat = setFormat;
         window.startLogging = startLogging;
         window.stopLogging = stopLogging;
@@ -514,13 +469,12 @@
         window.restoreLog = restoreLog;
         window.discardRestore = discardRestore;
 
-        // ===== Подписки =====
         document.addEventListener('visibilitychange', onVisibilityChange);
         window.addEventListener('pagehide', onPageHide);
 
         checkRestore();
 
-        // ===== Разрешения =====
+        / ===== Разрешения =====
         const needsPermission =
             typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function';
@@ -531,8 +485,8 @@
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;';
             overlay.innerHTML = `
                 <div style="background:#12121a;padding:32px;border-radius:16px;text-align:center;border:1px solid #2a2a3a;max-width:320px;">
-                    <h2 style="color:#00ff88;margin-bottom:16px;">Sensor Lab</h2>
-                    <p style="color:#aaa;margin-bottom:24px;">Нужен доступ к датчикам движения</p>
+                    <h2 style="color:#00ff88;margin-bottom:16px;">Sensor Lab · TWIST</h2>
+                    <p style="color:#aaa;margin-bottom:24px;">Нужен доступ к ориентации устройства</p>
                     <button id="permBtn" style="background:#00ff88;color:#000;border:none;padding:16px 32px;border-radius:8px;font-size:16px;cursor:pointer;">РАЗРЕШИТЬ</button>
                     <p id="permErr" style="color:#ff6666;margin-top:12px;font-size:12px;"></p>
                 </div>`;
@@ -542,16 +496,8 @@
                 const errEl = document.getElementById('permErr');
                 errEl.textContent = '';
                 try {
-                    let orientOk = 'granted';
-                    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                        orientOk = await DeviceOrientationEvent.requestPermission();
-                    }
-                    let motionOk = 'granted';
-                    if (typeof DeviceMotionEvent !== 'undefined' &&
-                        typeof DeviceMotionEvent.requestPermission === 'function') {
-                        motionOk = await DeviceMotionEvent.requestPermission();
-                    }
-                    if (orientOk === 'granted' && motionOk === 'granted') {
+                    const orientOk = await DeviceOrientationEvent.requestPermission();
+                    if (orientOk === 'granted') {
                         overlay.remove();
                         attachSensors();
                     } else {
@@ -568,3 +514,4 @@
     </script>
 </body>
 </html>
+                        
