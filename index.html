@@ -115,16 +115,14 @@
 
     <script>
     (function () {
-        // ===== Константы =====
         const BUFFER_CAPACITY = 10;
         const BASE_ALPHA = 0.01;
-        const FREEZE_SPEED_THRESHOLD = 25;   // °/с по rollSpeed
+        const FREEZE_SPEED_THRESHOLD = 25;
         const MIN_DT_SEC = 0.003;
         const MAX_DT_SEC = 0.05;
         const STORAGE_KEY = 'sensorlab_twist_v1';
         const TWIST_THRESHOLDS = [60, 90, 120];
 
-        // ===== Состояние =====
         let roll = 0, yaw = 0;
         let rollSpeed = 0, yawSpeed = 0;
         let deltaRoll = 0, deltaYaw = 0;
@@ -134,14 +132,12 @@
         let hasOrient = false;
         let baseInitialized = false;
 
-        // ===== Логирование =====
         let logging = false;
         let logEntries = [];
         let exportFormat = 'csv';
         let logStartTime = 0;
         let lastEntryTime = 0;
 
-        // ===== CircularBuffer =====
         class CircularBuffer {
             constructor(capacity) {
                 this.capacity = capacity;
@@ -164,7 +160,6 @@
         const rollWindow = new CircularBuffer(BUFFER_CAPACITY);
         const yawWindow  = new CircularBuffer(BUFFER_CAPACITY);
 
-        // ===== calculateSpeed (как в Kotlin) =====
         function calculateSpeed(window, useWrap) {
             if (window.size < 3) return 0;
             const n = window.size;
@@ -195,7 +190,6 @@
             return v;
         }
 
-        // ===== Обработчик ориентации =====
         function onOrientation(e) {
             if (e.gamma == null) return;
             roll = e.gamma || 0;
@@ -208,7 +202,6 @@
             window.addEventListener('deviceorientation', onOrientation);
         }
 
-        // ===== Главный обработчик сэмпла =====
         function onSample() {
             const nowNs = performance.now() * 1_000_000;
 
@@ -223,15 +216,12 @@
             rollWindow.add(roll, nowNs);
             yawWindow.add(yaw, nowNs);
 
-            // Скорости: roll — без wrap (диапазон -90..+90), yaw — с wrap (0..360)
             rollSpeed = calculateSpeed(rollWindow, false);
             yawSpeed  = calculateSpeed(yawWindow, true);
 
-            // Адаптивная база — заморозка по rollSpeed
             frozen = rollSpeed >= FREEZE_SPEED_THRESHOLD;
             if (!frozen) {
                 baseRoll = BASE_ALPHA * roll + (1 - BASE_ALPHA) * baseRoll;
-                // Для yaw корректно через нормализованную дельту
                 const dYaw = normalize180(yaw - baseYaw);
                 baseYaw = normalize360(baseYaw + BASE_ALPHA * dYaw);
             }
@@ -245,7 +235,6 @@
             if (logging) addEntry();
         }
 
-        // ===== UI =====
         function updateAll() {
             document.getElementById('orientDot').className = 'dot ' + (hasOrient ? 'on' : 'off');
 
@@ -270,7 +259,6 @@
             });
         }
 
-        // ===== Логирование =====
         function setFormat(f) {
             exportFormat = f;
             document.getElementById('fmtCsv').classList.toggle('active', f === 'csv');
@@ -414,7 +402,6 @@
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
         }
 
-        // ===== Автосохранение =====
         function saveToStorage() {
             if (!logEntries.length) return;
             try {
@@ -452,7 +439,6 @@
             document.getElementById('restoreBar').classList.remove('show');
         }
 
-        // ===== Visibility =====
         function onVisibilityChange() {
             const hidden = document.hidden;
             document.getElementById('visState').textContent = hidden ? 'hidden' : 'visible';
@@ -461,7 +447,6 @@
         }
         function onPageHide() { addEventMarker('pagehide'); saveToStorage(); }
 
-        // ===== window.* для onclick =====
         window.setFormat = setFormat;
         window.startLogging = startLogging;
         window.stopLogging = stopLogging;
@@ -476,23 +461,6 @@
         checkRestore();
 
         // ===== Разрешения =====
-        
-        function showAndroidPermissionBanner() {
-            const banner = document.createElement('div');
-            banner.id = 'androidPermBanner';
-            banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#12121a;border:1px solid #00ff88;border-radius:12px;padding:16px;text-align:center;z-index:998;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
-            banner.innerHTML = `
-                <p style="color:#aaa;margin-bottom:12px;font-size:14px;">Разрешите доступ к датчикам движения</p>
-                <button id="androidPermBtn" style="background:#00ff88;color:#000;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">ВКЛЮЧИТЬ ДАТЧИКИ</button>
-            `;
-            document.body.appendChild(banner);
-
-            document.getElementById('androidPermBtn').addEventListener('click', () => {
-                attachSensors();
-                banner.remove();
-            });
-        }
-
         const needsPermission =
             typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function';
@@ -526,10 +494,22 @@
                 }
             });
         } else {
-            if (typeof DeviceOrientationEvent !== 'undefined') {
-                showAndroidPermissionBanner();
-            } else {
-                document.getElementById('orientDot').className = 'dot off';
-            }
+            // Для Android: создаем баннер с кнопкой
+            const banner = document.createElement('div');
+            banner.id = 'androidPermBanner';
+            banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#12121a;border:1px solid #00ff88;border-radius:12px;padding:16px;text-align:center;z-index:998;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+            banner.innerHTML = `
+                <p style="color:#aaa;margin-bottom:12px;font-size:14px;">Разрешите доступ к датчикам движения</p>
+                <button id="androidPermBtn" style="background:#00ff88;color:#000;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">ВКЛЮЧИТЬ ДАТЧИКИ</button>
+            `;
+            document.body.appendChild(banner);
+
+            document.getElementById('androidPermBtn').addEventListener('click', () => {
+                attachSensors();
+                banner.remove();
+            });
         }
     })();
+    </script>
+</body>
+</html>
