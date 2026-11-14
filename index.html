@@ -476,10 +476,7 @@
         checkRestore();
 
         // ===== Разрешения =====
-        function attachSensors() {
-            window.addEventListener('deviceorientation', onOrientation);
-        }
-
+        
         function showAndroidPermissionBanner() {
             const banner = document.createElement('div');
             banner.id = 'androidPermBanner';
