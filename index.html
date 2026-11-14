@@ -156,8 +156,8 @@
                 this.writeIndex = (this.writeIndex + 1) % this.capacity;
                 if (this.size < this.capacity) this.size++;
             }
-            valueAt(i) { return this.values[(this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
-            timestampAt(i) { return this.timestamps[(this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
+            valueAt(i) { return this.values[((this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
+            timestampAt(i) { return this.timestamps[((this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
             clear() { this.values.fill(0); this.timestamps.fill(0); this.writeIndex = 0; this.size = 0; }
         }
 
