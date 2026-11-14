@@ -476,6 +476,26 @@
         checkRestore();
 
         // ===== Разрешения =====
+        function attachSensors() {
+            window.addEventListener('deviceorientation', onOrientation);
+        }
+
+        function showAndroidPermissionBanner() {
+            const banner = document.createElement('div');
+            banner.id = 'androidPermBanner';
+            banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#12121a;border:1px solid #00ff88;border-radius:12px;padding:16px;text-align:center;z-index:998;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+            banner.innerHTML = `
+                <p style="color:#aaa;margin-bottom:12px;font-size:14px;">Разрешите доступ к датчикам движения</p>
+                <button id="androidPermBtn" style="background:#00ff88;color:#000;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">ВКЛЮЧИТЬ ДАТЧИКИ</button>
+            `;
+            document.body.appendChild(banner);
+
+            document.getElementById('androidPermBtn').addEventListener('click', () => {
+                attachSensors();
+                banner.remove();
+            });
+        }
+
         const needsPermission =
             typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function';
@@ -509,9 +529,10 @@
                 }
             });
         } else {
-            attachSensors();
+            if (typeof DeviceOrientationEvent !== 'undefined') {
+                showAndroidPermissionBanner();
+            } else {
+                document.getElementById('orientDot').className = 'dot off';
+            }
         }
     })();
-    </script>
-</body>
-</html>
