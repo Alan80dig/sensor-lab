@@ -3,102 +3,121 @@
 <head>
     <meta name="google-site-verification" content="IlkBNfrEeaiV5uQUGH4HvcYSXqLSU_zIBv5fUuOk6eg" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Lab — TWIST</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sensor Lab — 3D TWIST + Euler</title>
     <style>
         :root {
             --bg: #0a0a0f; --panel: #12121a; --border: #2a2a3a;
             --green: #00ff88; --text: #e0e0e0; --muted: #666;
-            --accent: #ffaa00;
+            --accent: #ffaa00; --red: #ff4444; --blue: #44aaff;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: 'SF Mono','Courier New',monospace; min-height: 100vh; }
-        .container { max-width: 560px; margin: 0 auto; padding: 16px; }
-        .header { text-align: center; padding: 24px 0 16px; }
-        .header h1 { font-size: 22px; letter-spacing: 4px; color: var(--green); }
+        body { background: var(--bg); color: var(--text); font-family: 'SF Mono','Courier New',monospace; min-height: 100vh; padding-bottom: 20px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+        .header { text-align: center; padding: 12px 0; }
+        .header h1 { font-size: 20px; letter-spacing: 2px; color: var(--green); }
         .header .subtitle { font-size: 11px; color: var(--muted); margin-top: 4px; }
-        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-        .panel h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
-        .row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-        .label { font-size: 13px; color: #aaa; }
-        .value { font-size: 16px; font-weight: bold; color: var(--green); }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .panel h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+        .label { font-size: 12px; color: #aaa; }
+        .value { font-size: 14px; font-weight: bold; color: var(--green); font-variant-numeric: tabular-nums; }
         .value.accent { color: var(--accent); }
-        .value.big { font-size: 20px; }
-        .bar { height: 4px; background: #1a1a2a; border-radius: 2px; margin: 4px 0 10px; overflow: hidden; }
+        .value.blue { color: var(--blue); }
+        .value.red { color: var(--red); }
+        .value.big { font-size: 18px; }
+        .bar { height: 4px; background: #1a1a2a; border-radius: 2px; margin: 4px 0 8px; overflow: hidden; }
         .bar-fill { height: 100%; border-radius: 2px; transition: width 0.1s ease; }
         .status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .dot { width: 8px; height: 8px; border-radius: 50%; }
         .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
         .dot.off { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
         .buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-        button { background: var(--panel); border: 1px solid var(--border); color: var(--green); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; letter-spacing: 1px; }
+        button { background: var(--panel); border: 1px solid var(--border); color: var(--green); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; letter-spacing: 1px; flex: 1; }
         button:hover { border-color: var(--green); }
         button.primary { background: var(--green); color: var(--bg); border: none; }
         button:disabled { opacity: 0.4; cursor: not-allowed; }
-        #logPreview { background: #08080f; border: 1px solid #1a1a2a; border-radius: 8px; padding: 10px; max-height: 160px; overflow: auto; font-size: 10px; color: #555; margin: 8px 0; font-family: monospace; white-space: pre; }
+        button.mark { background: #2a1a00; border-color: var(--accent); color: var(--accent); }
+        #logPreview { background: #08080f; border: 1px solid #1a1a2a; border-radius: 8px; padding: 8px; max-height: 150px; overflow: auto; font-size: 10px; color: #555; margin: 8px 0; font-family: monospace; white-space: pre; }
         .format-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
-        .format-btn { padding: 6px 14px; font-size: 11px; background: var(--panel); border: 1px solid var(--border); color: var(--muted); border-radius: 6px; cursor: pointer; }
+        .format-btn { padding: 6px 12px; font-size: 11px; background: var(--panel); border: 1px solid var(--border); color: var(--muted); border-radius: 6px; cursor: pointer; flex: 1; }
         .format-btn.active { background: #1a2a1a; border-color: var(--green); color: var(--green); }
-        .rate-info { font-size: 11px; color: var(--muted); margin-top: 6px; }
-        .restore-bar { display: none; background: #1a2a1a; border: 1px solid var(--green); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; font-size: 11px; }
-        .restore-bar.show { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-        .restore-bar button { padding: 4px 10px; font-size: 11px; }
+        .rate-info { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .input-group { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .input-group label { font-size: 11px; color: var(--muted); width: 80px; }
+        .input-group input { background: #08080f; border: 1px solid var(--border); color: var(--green); padding: 4px 8px; border-radius: 4px; width: 80px; font-family: monospace; font-size: 12px; }
         .threshold-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
         .badge.hit { background: #2a1a00; border-color: var(--accent); color: var(--accent); font-weight: bold; }
-        .val-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
-        .val-grid .row { padding: 2px 0; }
+        .val-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+        .val-grid .row { padding: 1px 0; }
+        .val-grid .label { font-size: 11px; }
+        .val-grid .value { font-size: 13px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>SENSOR LAB · TWIST</h1>
-            <div class="subtitle">Настройка жеста поворота кисти</div>
+            <h1>SENSOR LAB · 3D TWIST</h1>
+            <div class="subtitle">Сырые данные + Истинный угол + Euler</div>
         </div>
 
         <div class="panel">
-            <h3>📡 Подключение</h3>
-            <div class="status-row"><div class="dot" id="orientDot"></div><span style="font-size:13px;">Ориентация (roll/yaw)</span></div>
-            <div class="rate-info">Частота записи: <span id="rateInfo">--</span></div>
+            <h3>📡 Подключение и Частота</h3>
+            <div class="status-row">
+                <div class="dot" id="orientDot"></div><span style="font-size:12px;">Orientation</span>
+                <div class="dot" id="motionDot" style="margin-left:12px;"></div><span style="font-size:12px;">Motion</span>
+            </div>
+            <div class="rate-info">Частота (Motion): <span id="rateInfo">--</span></div>
             <div class="rate-info">Состояние: <span id="visState">visible</span></div>
         </div>
 
         <div class="panel">
-            <h3>🎯 TWIST — главные метрики</h3>
-            <div class="row"><span class="label">twistAngle</span><span class="value big accent" id="twistAngleVal">--°</span></div>
-            <div class="bar"><div class="bar-fill" id="twistAngleBar" style="width:0%;background:var(--accent)"></div></div>
+            <h3>🎯 Главные метрики (3D)</h3>
+            <div class="row"><span class="label">angleDeg (True 3D)</span><span class="value big accent" id="angleDegVal">--°</span></div>
+            <div class="bar"><div class="bar-fill" id="angleDegBar" style="width:0%;background:var(--accent)"></div></div>
+            <div class="row"><span class="label">zDrop</span><span class="value big accent" id="zDropVal">--</span></div>
+            <div class="bar"><div class="bar-fill" id="zDropBar" style="width:0%;background:var(--blue)"></div></div>
+            <div class="row"><span class="label">twistEuler (Old)</span><span class="value" id="twistEulerVal">--°</span></div>
+            <div class="row"><span class="label">|g| (Module)</span><span class="value" id="gModuleVal">--</span></div>
             <div class="row"><span class="label">frozen</span><span class="value" id="frozenVal">--</span></div>
-            <div class="threshold-badges">
-                <span class="badge" id="badge60">60°</span>
-                <span class="badge" id="badge90">90°</span>
-                <span class="badge" id="badge120">120°</span>
+        </div>
+
+        <div class="panel">
+            <h3>⚙️ Настройки (Live)</h3>
+            <div class="input-group">
+                <label>BASE_ALPHA</label>
+                <input type="number" id="paramAlpha" value="0.04" step="0.01" min="0.01" max="0.2">
+            </div>
+            <div class="input-group">
+                <label>FREEZE_SPD</label>
+                <input type="number" id="paramFreeze" value="20" step="1" min="5" max="100"> °/s
             </div>
         </div>
 
         <div class="panel">
-            <h3>📐 roll / yaw</h3>
+            <h3>📐 Сырые данные (Accel / Gyro)</h3>
             <div class="val-grid">
-                <div class="row"><span class="label">roll</span><span class="value" id="rollVal">--°</span></div>
-                <div class="row"><span class="label">yaw</span><span class="value" id="yawVal">--°</span></div>
-                <div class="row"><span class="label">deltaRoll</span><span class="value" id="deltaRollVal">--°</span></div>
-                <div class="row"><span class="label">deltaYaw</span><span class="value" id="deltaYawVal">--°</span></div>
-                <div class="row"><span class="label">rollSpeed</span><span class="value" id="rollSpeedVal">--</span></div>
-                <div class="row"><span class="label">yawSpeed</span><span class="value" id="yawSpeedVal">--</span></div>
-                <div class="row"><span class="label">baseRoll</span><span class="value" id="baseRollVal">--°</span></div>
-                <div class="row"><span class="label">baseYaw</span><span class="value" id="baseYawVal">--°</span></div>
+                <div class="row"><span class="label">ax</span><span class="value" id="axVal">--</span></div>
+                <div class="row"><span class="label">ay</span><span class="value" id="ayVal">--</span></div>
+                <div class="row"><span class="label">az</span><span class="value" id="azVal">--</span></div>
+                <div class="row"><span class="label">gx (roll)</span><span class="value" id="gxVal">--</span></div>
+                <div class="row"><span class="label">gy (pitch)</span><span class="value" id="gyVal">--</span></div>
+                <div class="row"><span class="label">gz (yaw)</span><span class="value" id="gzVal">--</span></div>
+                <div class="row"><span class="label">alpha</span><span class="value" id="alphaVal">--°</span></div>
+                <div class="row"><span class="label">beta</span><span class="value" id="betaVal">--°</span></div>
+                <div class="row"><span class="label">gamma</span><span class="value" id="gammaVal">--°</span></div>
+                <div class="row"><span class="label">absolute</span><span class="value" id="absoluteVal">--</span></div>
+            </div>
+            <div class="threshold-badges">
+                <span class="badge" id="badge45">45°</span>
+                <span class="badge" id="badge65">65°</span>
+                <span class="badge" id="badge90">90°</span>
             </div>
         </div>
 
         <div class="panel">
             <h3>📋 Запись данных <span style="font-size:11px;color:var(--muted);">(записей: <span id="logCount">0</span>)</span></h3>
-            <div id="restoreBar" class="restore-bar">
-                <span>Найдена прошлая сессия (<span id="restoreCount">0</span>)</span>
-                <span>
-                    <button onclick="restoreLog()">Восстановить</button>
-                    <button onclick="discardRestore()">Удалить</button>
-                </span>
-            </div>
             <div id="logPreview">Нажмите СТАРТ для записи</div>
             <div class="format-toggle">
                 <button class="format-btn active" id="fmtCsv" onclick="setFormat('csv')">CSV</button>
@@ -107,6 +126,14 @@
             <div class="buttons">
                 <button class="primary" id="btnStart" onclick="startLogging()">▶ СТАРТ</button>
                 <button id="btnStop" onclick="stopLogging()" disabled>⏹ СТОП</button>
+            </div>
+            <div class="buttons" style="margin-top:8px;">
+                <button class="mark" onclick="addMarker('START_GESTURE')">▶ Жест</button>
+                <button class="mark" onclick="addMarker('SCREEN_DOWN')">⏬ Экран вниз</button>
+                <button class="mark" onclick="addMarker('SCREEN_UP')">⏫ Экран вверх</button>
+                <button class="mark" onclick="addMarker('REST')">🛑 Покой</button>
+            </div>
+            <div class="buttons" style="margin-top:8px;">
                 <button onclick="exportLog()">📥 ЭКСПОРТ</button>
                 <button onclick="clearLog()">🗑 ОЧИСТИТЬ</button>
             </div>
@@ -115,238 +142,268 @@
 
     <script>
     (function () {
+        // ===== Константы =====
         const BUFFER_CAPACITY = 10;
-        const BASE_ALPHA = 0.01;
-        const FREEZE_SPEED_THRESHOLD = 25;
         const MIN_DT_SEC = 0.003;
         const MAX_DT_SEC = 0.05;
-        const STORAGE_KEY = 'sensorlab_twist_v1';
-        const TWIST_THRESHOLDS = [60, 90, 120];
+        const STORAGE_KEY = 'sensorlab_3d_v1';
+        
+        // ===== Состояние =====
+        let ax = 0, ay = 0, az = 0;
+        let gx = 0, gy = 0, gz = 0; // rotationRate
+        let alpha = 0, beta = 0, gamma = 0, isAbsolute = false;
+        let hasOrient = false, hasMotion = false;
 
-        let roll = 0, yaw = 0;
-        let rollSpeed = 0, yawSpeed = 0;
-        let deltaRoll = 0, deltaYaw = 0;
-        let baseRoll = 0, baseYaw = 0;
-        let twistAngle = 0;
-        let frozen = false;
-        let hasOrient = false;
+        // Векторная математика
+        let baseGx = 0, baseGy = 0, baseGz = 0;
         let baseInitialized = false;
+        let frozen = false;
+        let angleDeg = 0;
+        let zDrop = 0;
+        let gModule = 0;
+        let speed3D = 0;
 
+        // Эйлерова эвристика (для сравнения)
+        let baseRoll = 0, baseYaw = 0;
+        let deltaRoll = 0, deltaYaw = 0;
+        let twistEuler = 0;
+
+        // Буферы
+        class CircularBuffer {
+            constructor(cap) { this.cap = cap; this.v = new Float32Array(cap); this.t = new Float64Array(cap); this.idx = 0; this.size = 0; }
+            add(val, ts) { this.v[this.idx] = val; this.t[this.idx] = ts; this.idx = (this.idx + 1) % this.cap; if (this.size < this.cap) this.size++; }
+            at(i) { return this.v[(this.size < this.cap ? 0 : this.idx + i) % this.cap]; }
+            tAt(i) { return this.t[(this.size < this.cap ? 0 : this.idx + i) % this.cap]; }
+            clear() { this.v.fill(0); this.t.fill(0); this.idx = 0; this.size = 0; }
+        }
+        const bufGx = new CircularBuffer(BUFFER_CAPACITY);
+        const bufGy = new CircularBuffer(BUFFER_CAPACITY);
+        const bufGz = new CircularBuffer(BUFFER_CAPACITY);
+
+        // Логирование
         let logging = false;
         let logEntries = [];
         let exportFormat = 'csv';
-        let logStartTime = 0;
-        let lastEntryTime = 0;
+        let logStart = 0;
+        let lastLogTime = 0;
 
-        class CircularBuffer {
-            constructor(capacity) {
-                this.capacity = capacity;
-                this.values = new Float32Array(capacity);
-                this.timestamps = new Float64Array(capacity);
-                this.writeIndex = 0;
-                this.size = 0;
+        // ===== DOM элементы =====
+        const $ = id => document.getElementById(id);
+
+        // ===== Математика =====
+        function normalize180(v) { return v > 180 ? v - 360 : (v < -180 ? v + 360 : v); }
+        function normalize360(v) { v = v % 360; return v < 0 ? v + 360 : v; }
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function calcSpeed(buf) {
+            if (buf.size < 3) return 0;
+            let acc = 0, time = 0;
+            for (let i = 1; i < buf.size; i++) {
+                let diff = Math.abs(buf.at(i) - buf.at(i-1));
+                if (diff > 180) diff = 360 - diff;
+                let dt = (buf.tAt(i) - buf.tAt(i-1)) / 1e9;
+                if (dt >= MIN_DT_SEC && dt <= MAX_DT_SEC) { acc += diff; time += dt; }
             }
-            add(value, ts) {
-                this.values[this.writeIndex] = value;
-                this.timestamps[this.writeIndex] = ts;
-                this.writeIndex = (this.writeIndex + 1) % this.capacity;
-                if (this.size < this.capacity) this.size++;
-            }
-            valueAt(i) { return this.values[((this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
-            timestampAt(i) { return this.timestamps[((this.size < this.capacity ? 0 : this.writeIndex) + i) % this.capacity]; }
-            clear() { this.values.fill(0); this.timestamps.fill(0); this.writeIndex = 0; this.size = 0; }
+            return time > 0 ? acc / time : 0;
         }
 
-        const rollWindow = new CircularBuffer(BUFFER_CAPACITY);
-        const yawWindow  = new CircularBuffer(BUFFER_CAPACITY);
-
-        function calculateSpeed(window, useWrap) {
-            if (window.size < 3) return 0;
-            const n = window.size;
-            let accumulated = 0, totalTimeSec = 0;
-            for (let i = 1; i < n; i++) {
-                const prevVal = window.valueAt(i - 1);
-                const currVal = window.valueAt(i);
-                let diff = Math.abs(currVal - prevVal);
-                if (useWrap && diff > 180) diff = 360 - diff;
-                const dtSec = (window.timestampAt(i) - window.timestampAt(i - 1)) / 1_000_000_000;
-                if (dtSec >= MIN_DT_SEC && dtSec <= MAX_DT_SEC) {
-                    accumulated += diff;
-                    totalTimeSec += dtSec;
-                }
-            }
-            return totalTimeSec > 0 ? accumulated / totalTimeSec : 0;
-        }
-
-        function normalize180(v) {
-            if (v > 180) return v - 360;
-            if (v < -180) return v + 360;
-            return v;
-        }
-
-        function normalize360(v) {
-            v = v % 360;
-            if (v < 0) v += 360;
-            return v;
-        }
-
+        // ===== Обработчики событий =====
         function onOrientation(e) {
             if (e.gamma == null) return;
-            roll = e.gamma || 0;
-            yaw  = e.alpha != null ? normalize360(e.alpha) : 0;
+            alpha = e.alpha != null ? normalize360(e.alpha) : 0;
+            beta = e.beta || 0;
+            gamma = e.gamma || 0;
+            isAbsolute = e.absolute || false;
             hasOrient = true;
-            onSample();
+            $('orientDot').className = 'dot on';
         }
 
-        function attachSensors() {
-            window.addEventListener('deviceorientation', onOrientation);
-        }
+        function onMotion(e) {
+            const acc = e.accelerationIncludingGravity;
+            const rot = e.rotationRate;
+            if (!acc) return;
 
-        function onSample() {
-            const nowNs = performance.now() * 1_000_000;
+            ax = acc.x || 0; ay = acc.y || 0; az = acc.z || 0;
+            gx = rot ? (rot.beta || 0) : 0; // roll rate
+            gy = rot ? (rot.gamma || 0) : 0; // pitch rate
+            gz = rot ? (rot.alpha || 0) : 0; // yaw rate
 
+            hasMotion = true;
+            $('motionDot').className = 'dot on';
+
+            const nowNs = performance.now() * 1e6;
+            gModule = Math.sqrt(ax*ax + ay*ay + az*az);
+
+            // Инициализация базы
             if (!baseInitialized) {
-                baseRoll = roll; baseYaw = yaw; baseInitialized = true;
-                rollWindow.add(roll, nowNs);
-                yawWindow.add(yaw, nowNs);
-                updateAll();
-                return;
+                if (gModule > 7.5 && gModule < 12.2) {
+                    baseGx = ax / gModule;
+                    baseGy = ay / gModule;
+                    baseGz = az / gModule;
+                    baseInitialized = true;
+                    baseRoll = gamma;
+                    baseYaw = alpha;
+                }
             }
 
-            rollWindow.add(roll, nowNs);
-            yawWindow.add(yaw, nowNs);
+            if (baseInitialized) {
+                // Нормализация текущего вектора
+                let nx = 0, ny = 0, nz = 0;
+                if (gModule > 0.1) { nx = ax / gModule; ny = ay / gModule; nz = az / gModule; }
 
-            rollSpeed = calculateSpeed(rollWindow, false);
-            yawSpeed  = calculateSpeed(yawWindow, true);
+                // 3D угол
+                let dot = clamp(baseGx*nx + baseGy*ny + baseGz*nz, -1, 1);
+                angleDeg = Math.acos(dot) * (180 / Math.PI);
 
-            frozen = rollSpeed >= FREEZE_SPEED_THRESHOLD;
-            if (!frozen) {
-                baseRoll = BASE_ALPHA * roll + (1 - BASE_ALPHA) * baseRoll;
-                const dYaw = normalize180(yaw - baseYaw);
-                baseYaw = normalize360(baseYaw + BASE_ALPHA * dYaw);
+                // zDrop
+                zDrop = baseGz - nz;
+
+                // Скорость
+                bufGx.add(gx, nowNs);
+                bufGy.add(gy, nowNs);
+                bufGz.add(gz, nowNs);
+                let spdX = calcSpeed(bufGx), spdY = calcSpeed(bufGy), spdZ = calcSpeed(bufGz);
+                speed3D = Math.sqrt(spdX*spdX + spdY*spdY + spdZ*spdZ);
+
+                // Параметры с ползунков
+                let pAlpha = parseFloat($('paramAlpha').value) || 0.04;
+                let pFreeze = parseFloat($('paramFreeze').value) || 20;
+
+                // Логика заморозки
+                if (angleDeg > 65 * 0.45) { // Порог 65 * 0.45 (как в инструкции)
+                    frozen = true;
+                } else if (angleDeg < 65 * 0.2) {
+                    frozen = false;
+                }
+
+                if (!frozen && speed3D < pFreeze) {
+                    baseGx = pAlpha * nx + (1 - pAlpha) * baseGx;
+                    baseGy = pAlpha * ny + (1 - pAlpha) * baseGy;
+                    baseGz = pAlpha * nz + (1 - pAlpha) * baseGz;
+                    // Ре-нормализация базы
+                    let bLen = Math.sqrt(baseGx*baseGx + baseGy*baseGy + baseGz*baseGz);
+                    if (bLen > 0) { baseGx /= bLen; baseGy /= bLen; baseGz /= bLen; }
+
+                    // База для Euler
+                    baseRoll = pAlpha * gamma + (1 - pAlpha) * baseRoll;
+                    const dYaw = normalize180(alpha - baseYaw);
+                    baseYaw = normalize360(baseYaw + pAlpha * dYaw);
+                }
+
+                // Эйлеровы дельты
+                deltaRoll = normalize180(gamma - baseRoll);
+                deltaYaw = normalize180(alpha - baseYaw);
+                twistEuler = Math.sqrt(deltaRoll*deltaRoll + deltaYaw*deltaYaw);
+
+                // Обновление UI
+                updateUI();
+
+                if (logging) addEntry();
             }
-
-            deltaRoll = normalize180(roll - baseRoll);
-            deltaYaw  = normalize180(yaw - baseYaw);
-            twistAngle = Math.sqrt(deltaRoll * deltaRoll + deltaYaw * deltaYaw);
-
-            updateAll();
-
-            if (logging) addEntry();
         }
 
-        function updateAll() {
-            document.getElementById('orientDot').className = 'dot ' + (hasOrient ? 'on' : 'off');
+        function updateUI() {
+            $('axVal').textContent = ax.toFixed(2);
+            $('ayVal').textContent = ay.toFixed(2);
+            $('azVal').textContent = az.toFixed(2);
+            $('gxVal').textContent = gx.toFixed(1);
+            $('gyVal').textContent = gy.toFixed(1);
+            $('gzVal').textContent = gz.toFixed(1);
+            $('alphaVal').textContent = alpha.toFixed(1) + '°';
+            $('betaVal').textContent = beta.toFixed(1) + '°';
+            $('gammaVal').textContent = gamma.toFixed(1) + '°';
+            $('absoluteVal').textContent = isAbsolute ? 'true' : 'false';
+            
+            $('gModuleVal').textContent = gModule.toFixed(2);
+            $('angleDegVal').textContent = angleDeg.toFixed(1) + '°';
+            $('angleDegBar').style.width = Math.min(100, angleDeg / 150 * 100) + '%';
+            
+            $('zDropVal').textContent = zDrop.toFixed(2);
+            $('zDropBar').style.width = Math.min(100, Math.max(0, zDrop) / 1.0 * 100) + '%';
 
-            document.getElementById('rollVal').textContent = roll.toFixed(1) + '°';
-            document.getElementById('yawVal').textContent = yaw.toFixed(1) + '°';
-            document.getElementById('deltaRollVal').textContent = deltaRoll.toFixed(1) + '°';
-            document.getElementById('deltaYawVal').textContent = deltaYaw.toFixed(1) + '°';
-            document.getElementById('rollSpeedVal').textContent = rollSpeed.toFixed(1);
-            document.getElementById('yawSpeedVal').textContent = yawSpeed.toFixed(1);
-            document.getElementById('baseRollVal').textContent = baseRoll.toFixed(1) + '°';
-            document.getElementById('baseYawVal').textContent = baseYaw.toFixed(1) + '°';
+            $('twistEulerVal').textContent = twistEuler.toFixed(1) + '°';
 
-            document.getElementById('twistAngleVal').textContent = twistAngle.toFixed(1) + '°';
-            document.getElementById('twistAngleBar').style.width = Math.min(100, twistAngle / 150 * 100) + '%';
+            $('frozenVal').textContent = frozen ? 'ДА' : 'нет';
+            $('frozenVal').style.color = frozen ? 'var(--accent)' : 'var(--green)';
 
-            const frozenEl = document.getElementById('frozenVal');
-            frozenEl.textContent = frozen ? 'ДА' : 'нет';
-            frozenEl.style.color = frozen ? 'var(--accent)' : 'var(--green)';
-
-            TWIST_THRESHOLDS.forEach(th => {
-                document.getElementById('badge' + th).classList.toggle('hit', twistAngle >= th);
+            [45, 65, 90].forEach(th => {
+                $('badge' + th)?.classList.toggle('hit', angleDeg >= th);
             });
         }
 
-        function setFormat(f) {
-            exportFormat = f;
-            document.getElementById('fmtCsv').classList.toggle('active', f === 'csv');
-            document.getElementById('fmtTxt').classList.toggle('active', f === 'txt');
-        }
-
+        // ===== Логирование =====
         function startLogging() {
-            logging = true;
-            logStartTime = performance.now();
-            lastEntryTime = logStartTime;
-            document.getElementById('btnStart').disabled = true;
-            document.getElementById('btnStop').disabled = false;
+            logging = true; logStart = performance.now(); lastLogTime = logStart;
+            $('btnStart').disabled = true; $('btnStop').disabled = false;
+            addEntry(true); // Первая запись
         }
 
         function stopLogging() {
             logging = false;
-            document.getElementById('btnStart').disabled = false;
-            document.getElementById('btnStop').disabled = true;
+            $('btnStart').disabled = false; $('btnStop').disabled = true;
+            saveToStorage();
         }
 
-        function addEntry() {
-            const now = performance.now();
-            const tMs = now - logStartTime;
-            const dtMs = now - lastEntryTime;
-            lastEntryTime = now;
-
-            const entry = {
-                timestamp: new Date().toISOString(),
-                tMs, dtMs,
-                roll, yaw,
-                rollSpeed, yawSpeed,
-                deltaRoll, deltaYaw,
-                baseRoll, baseYaw,
-                twistAngle,
-                frozen: frozen ? 1 : 0,
-                twist60:  twistAngle >= 60  ? 1 : 0,
-                twist90:  twistAngle >= 90  ? 1 : 0,
-                twist120: twistAngle >= 120 ? 1 : 0
-            };
-            logEntries.push(entry);
-            document.getElementById('logCount').textContent = logEntries.length;
-
-            if (dtMs > 0) {
-                const hz = 1000 / dtMs;
-                document.getElementById('rateInfo').textContent = hz.toFixed(1) + ' Hz (Δt=' + dtMs.toFixed(1) + ' мс)';
-            }
-            if (logEntries.length % 5 === 0 || logEntries.length <= 5) updatePreview();
-        }
-
-        function addEventMarker(eventName) {
+        function addMarker(name) {
             if (!logging) return;
             const now = performance.now();
-            const tMs = now - logStartTime;
-            const dtMs = now - lastEntryTime;
-            lastEntryTime = now;
             logEntries.push({
-                timestamp: new Date().toISOString(),
-                tMs, dtMs,
-                roll, yaw,
-                rollSpeed: 0, yawSpeed: 0,
-                deltaRoll: 0, deltaYaw: 0,
-                baseRoll, baseYaw,
-                twistAngle: 0,
-                frozen: 0,
-                twist60: 0, twist90: 0, twist120: 0,
-                event: eventName
+                ts: new Date().toISOString(),
+                tMs: now - logStart, dtMs: now - lastLogTime,
+                event: name,
+                ax, ay, az, gModule, nx: ax/gModule, ny: ay/gModule, nz: az/gModule,
+                gx, gy, gz, speed3D,
+                alpha, beta, gamma, absolute: isAbsolute,
+                baseGx, baseGy, baseGz,
+                angleDeg, zDrop, twistEuler,
+                frozen: frozen ? 1 : 0
             });
-            document.getElementById('logCount').textContent = logEntries.length;
+            lastLogTime = now;
             updatePreview();
+            $('logCount').textContent = logEntries.length;
+        }
+
+        function addEntry(force = false) {
+            const now = performance.now();
+            const dtMs = now - lastLogTime;
+            if (!force && dtMs < 20) return; // Ограничим ~50 Гц чтобы не забить память
+
+            let nx = ax/gModule, ny = ay/gModule, nz = az/gModule;
+            logEntries.push({
+                ts: new Date().toISOString(),
+                tMs: now - logStart, dtMs,
+                event: '',
+                ax, ay, az, gModule, nx, ny, nz,
+                gx, gy, gz, speed3D,
+                alpha, beta, gamma, absolute: isAbsolute,
+                baseGx, baseGy, baseGz,
+                angleDeg, zDrop, twistEuler,
+                frozen: frozen ? 1 : 0
+            });
+            lastLogTime = now;
+            if (logEntries.length % 5 === 0) updatePreview();
+            $('logCount').textContent = logEntries.length;
+            $('rateInfo').textContent = dtMs > 0 ? (1000/dtMs).toFixed(1) + ' Hz' : '--';
         }
 
         function updatePreview() {
-            const prev = document.getElementById('logPreview');
-            const last = logEntries.slice(-8);
-            prev.textContent = last.map(e => {
+            const last = logEntries.slice(-6);
+            $('logPreview').textContent = last.map(e => {
                 if (e.event) return `[${e.event}] t=${e.tMs.toFixed(0)}ms`;
-                return `t=${e.tMs.toFixed(0).padStart(6)} | ` +
-                    `R:${e.roll.toFixed(1).padStart(6)} Y:${e.yaw.toFixed(1).padStart(6)} | ` +
-                    `ΔR:${e.deltaRoll.toFixed(1).padStart(6)} ΔY:${e.deltaYaw.toFixed(1).padStart(6)} | ` +
-                    `T:${e.twistAngle.toFixed(1).padStart(6)} F:${e.frozen}`;
+                return `t=${e.tMs.toFixed(0).padStart(5)} | A:${e.angleDeg.toFixed(1).padStart(5)}° Z:${e.zDrop.toFixed(2).padStart(4)} | E:${e.twistEuler.toFixed(1).padStart(5)}° | |g|:${e.gModule.toFixed(1)}`;
             }).join('\n');
+        }
+
+        function setFormat(f) {
+            exportFormat = f;
+            $('fmtCsv').classList.toggle('active', f === 'csv');
+            $('fmtTxt').classList.toggle('active', f === 'txt');
         }
 
         function clearLog() {
             logEntries = [];
-            document.getElementById('logCount').textContent = '0';
-            document.getElementById('rateInfo').textContent = '--';
-            document.getElementById('logPreview').textContent = 'Нажмите СТАРТ для записи';
+            $('logCount').textContent = '0';
+            $('logPreview').textContent = 'Нажмите СТАРТ для записи';
             localStorage.removeItem(STORAGE_KEY);
         }
 
@@ -355,160 +412,93 @@
             let content, fn, mime;
 
             if (exportFormat === 'csv') {
-                const head = 'timestamp,t_ms,dt_ms,roll,yaw,rollSpeed,yawSpeed,deltaRoll,deltaYaw,baseRoll,baseYaw,twistAngle,frozen,twist60,twist90,twist120,event\n';
+                const head = 'timestamp,t_ms,dt_ms,event,ax,ay,az,|g|,nx,ny,nz,gx,gy,gz,speed3D,alpha,beta,gamma,absolute,baseGx,baseGy,baseGz,angleDeg,zDrop,twistEuler,frozen\n';
                 content = head + logEntries.map(e =>
-                    `${e.timestamp},${e.tMs.toFixed(2)},${e.dtMs.toFixed(2)},` +
-                    `${e.roll.toFixed(3)},${e.yaw.toFixed(3)},` +
-                    `${e.rollSpeed.toFixed(2)},${e.yawSpeed.toFixed(2)},` +
-                    `${e.deltaRoll.toFixed(3)},${e.deltaYaw.toFixed(3)},` +
-                    `${e.baseRoll.toFixed(3)},${e.baseYaw.toFixed(3)},` +
-                    `${e.twistAngle.toFixed(2)},` +
-                    `${e.frozen},${e.twist60},${e.twist90},${e.twist120},` +
-                    `${e.event || ''}`
+                    `"${e.ts}",${e.tMs.toFixed(1)},${e.dtMs.toFixed(1)},"${e.event}",` +
+                    `${e.ax.toFixed(3)},${e.ay.toFixed(3)},${e.az.toFixed(3)},${e.gModule.toFixed(3)},` +
+                    `${e.nx.toFixed(4)},${e.ny.toFixed(4)},${e.nz.toFixed(4)},` +
+                    `${e.gx.toFixed(1)},${e.gy.toFixed(1)},${e.gz.toFixed(1)},${e.speed3D.toFixed(1)},` +
+                    `${e.alpha.toFixed(1)},${e.beta.toFixed(1)},${e.gamma.toFixed(1)},${e.absolute?1:0},` +
+                    `${e.baseGx.toFixed(4)},${e.baseGy.toFixed(4)},${e.baseGz.toFixed(4)},` +
+                    `${e.angleDeg.toFixed(2)},${e.zDrop.toFixed(2)},${e.twistEuler.toFixed(2)},${e.frozen}`
                 ).join('\n');
-                fn = 'twist-data.csv'; mime = 'text/csv';
+                fn = 'sensor_3d.csv'; mime = 'text/csv';
             } else {
-                const w = 160;
-                const divider = '='.repeat(w);
-                const subDivider = '-'.repeat(w);
-                content = 'Sensor Lab TWIST\n' + divider + '\n' +
-                    'Timestamp                | t(ms)   | dt(ms) | Roll    | Yaw     | dRoll   | dYaw    | rSpeed  | ySpeed  | baseR   | baseY   | Twist   | frz | 60 90 120 | Event\n' +
-                    subDivider + '\n' +
+                content = '3D Sensor Lab Log\n' + '='.repeat(100) + '\n' +
+                    'Time(ms) | Event       | angleDeg | zDrop | twistEuler | |g|   | ax    ay    az    | gx   gy   gz\n' +
+                    '-'.repeat(100) + '\n' +
                     logEntries.map(e =>
-                        `${e.timestamp.slice(0,23).padEnd(24)} | ` +
-                        `${e.tMs.toFixed(0).padStart(7)} | ` +
-                        `${e.dtMs.toFixed(1).padStart(6)} | ` +
-                        `${e.roll.toFixed(1).padStart(7)} | ` +
-                        `${e.yaw.toFixed(1).padStart(7)} | ` +
-                        `${e.deltaRoll.toFixed(1).padStart(7)} | ` +
-                        `${e.deltaYaw.toFixed(1).padStart(7)} | ` +
-                        `${e.rollSpeed.toFixed(1).padStart(7)} | ` +
-                        `${e.yawSpeed.toFixed(1).padStart(7)} | ` +
-                        `${e.baseRoll.toFixed(1).padStart(7)} | ` +
-                        `${e.baseYaw.toFixed(1).padStart(7)} | ` +
-                        `${e.twistAngle.toFixed(1).padStart(7)} | ` +
-                        `${e.frozen}   | ` +
-                        `${e.twist60}  ${e.twist90}  ${e.twist120}   | ` +
-                        `${e.event || ''}`
-                    ).join('\n') + '\n' + subDivider + `\nВсего: ${logEntries.length}`;
-                fn = 'twist-data.txt'; mime = 'text/plain';
+                        `${e.tMs.toFixed(0).padStart(8)} | ${(e.event||'').padEnd(11)} | ` +
+                        `${e.angleDeg.toFixed(1).padStart(8)}° | ${e.zDrop.toFixed(2).padStart(5)} | ` +
+                        `${e.twistEuler.toFixed(1).padStart(10)}° | ${e.gModule.toFixed(1).padStart(5)} | ` +
+                        `${e.ax.toFixed(1).padStart(5)} ${e.ay.toFixed(1).padStart(5)} ${e.az.toFixed(1).padStart(5)} | ` +
+                        `${e.gx.toFixed(0).padStart(4)} ${e.gy.toFixed(0).padStart(4)} ${e.gz.toFixed(0).padStart(4)}`
+                    ).join('\n');
+                fn = 'sensor_3d.txt'; mime = 'text/plain';
             }
 
             const b = new Blob([content], {type: mime});
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(b);
-            a.download = fn;
-            a.click();
+            a.href = URL.createObjectURL(b); a.download = fn; a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
         }
 
         function saveToStorage() {
             if (!logEntries.length) return;
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries));
-            } catch (e) {
-                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries.slice(-2000))); } catch (e2) {}
-            }
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries.slice(-2000))); } catch(e) {}
         }
 
-        function checkRestore() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) return;
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    window.__restoreCandidate = parsed;
-                    document.getElementById('restoreCount').textContent = parsed.length;
-                    document.getElementById('restoreBar').classList.add('show');
-                }
-            } catch (e) {}
+        // ===== Инициализация =====
+        function init() {
+            window.addEventListener('deviceorientation', onOrientation);
+            window.addEventListener('devicemotion', onMotion);
+            
+            document.addEventListener('visibilitychange', () => {
+                const hidden = document.hidden;
+                $('visState').textContent = hidden ? 'hidden' : 'visible';
+                if (hidden) { addMarker('VISIBLE_HIDDEN'); saveToStorage(); }
+                else { addMarker('VISIBLE_ON'); }
+            });
+
+            // Экспорт функций в глобал
+            window.setFormat = setFormat;
+            window.startLogging = startLogging;
+            window.stopLogging = stopLogging;
+            window.exportLog = exportLog;
+            window.clearLog = clearLog;
+            window.addMarker = addMarker;
         }
 
-        function restoreLog() {
-            if (!window.__restoreCandidate) return;
-            logEntries = window.__restoreCandidate;
-            document.getElementById('logCount').textContent = logEntries.length;
-            document.getElementById('restoreBar').classList.remove('show');
-            updatePreview();
-            window.__restoreCandidate = null;
-        }
-
-        function discardRestore() {
-            localStorage.removeItem(STORAGE_KEY);
-            window.__restoreCandidate = null;
-            document.getElementById('restoreBar').classList.remove('show');
-        }
-
-        function onVisibilityChange() {
-            const hidden = document.hidden;
-            document.getElementById('visState').textContent = hidden ? 'hidden' : 'visible';
-            if (hidden) { addEventMarker('hidden'); saveToStorage(); }
-            else { addEventMarker('visible'); }
-        }
-        function onPageHide() { addEventMarker('pagehide'); saveToStorage(); }
-
-        window.setFormat = setFormat;
-        window.startLogging = startLogging;
-        window.stopLogging = stopLogging;
-        window.exportLog = exportLog;
-        window.clearLog = clearLog;
-        window.restoreLog = restoreLog;
-        window.discardRestore = discardRestore;
-
-        document.addEventListener('visibilitychange', onVisibilityChange);
-        window.addEventListener('pagehide', onPageHide);
-
-        checkRestore();
-
-        // ===== Разрешения =====
-        const needsPermission =
-            typeof DeviceOrientationEvent !== 'undefined' &&
-            typeof DeviceOrientationEvent.requestPermission === 'function';
-
-        if (needsPermission) {
-            const overlay = document.createElement('div');
-            overlay.id = 'permOverlay';
-            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:999;';
-            overlay.innerHTML = `
-                <div style="background:#12121a;padding:32px;border-radius:16px;text-align:center;border:1px solid #2a2a3a;max-width:320px;">
-                    <h2 style="color:#00ff88;margin-bottom:16px;">Sensor Lab · TWIST</h2>
-                    <p style="color:#aaa;margin-bottom:24px;">Нужен доступ к ориентации устройства</p>
-                    <button id="permBtn" style="background:#00ff88;color:#000;border:none;padding:16px 32px;border-radius:8px;font-size:16px;cursor:pointer;">РАЗРЕШИТЬ</button>
-                    <p id="permErr" style="color:#ff6666;margin-top:12px;font-size:12px;"></p>
-                </div>`;
-            document.body.appendChild(overlay);
-
-            document.getElementById('permBtn').addEventListener('click', async () => {
-                const errEl = document.getElementById('permErr');
-                errEl.textContent = '';
+        // Разрешения
+        const needsPerm = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
+        
+        if (needsPerm) {
+            const btn = document.createElement('button');
+            btn.textContent = 'РАЗРЕШИТЬ ДАТЧИКИ';
+            btn.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px;background:#00ff88;color:#000;border:none;border-radius:8px;font-size:16px;z-index:999;cursor:pointer;';
+            document.body.appendChild(btn);
+            btn.onclick = async () => {
                 try {
-                    const orientOk = await DeviceOrientationEvent.requestPermission();
-                    if (orientOk === 'granted') {
-                        overlay.remove();
-                        attachSensors();
-                    } else {
-                        errEl.textContent = 'Доступ отклонён.';
-                    }
-                } catch (err) {
-                    errEl.textContent = 'Ошибка: ' + err.message;
-                }
-            });
+                    await DeviceMotionEvent.requestPermission();
+                    await DeviceOrientationEvent.requestPermission();
+                    btn.remove();
+                    init();
+                } catch(e) { alert('Ошибка: ' + e.message); }
+            };
         } else {
-            // Для Android: создаем баннер с кнопкой
+            // Для Android: баннер
             const banner = document.createElement('div');
-            banner.id = 'androidPermBanner';
-            banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#12121a;border:1px solid #00ff88;border-radius:12px;padding:16px;text-align:center;z-index:998;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
-            banner.innerHTML = `
-                <p style="color:#aaa;margin-bottom:12px;font-size:14px;">Разрешите доступ к датчикам движения</p>
-                <button id="androidPermBtn" style="background:#00ff88;color:#000;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">ВКЛЮЧИТЬ ДАТЧИКИ</button>
-            `;
+            banner.style.cssText = 'position:fixed;bottom:20px;left:20px;right:20px;background:#12121a;border:1px solid #00ff88;border-radius:12px;padding:16px;text-align:center;z-index:998;';
+            banner.innerHTML = '<p style="color:#aaa;margin-bottom:12px;font-size:14px;">Разрешите доступ к датчикам движения</p><button id="permBtn" style="background:#00ff88;color:#000;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">ВКЛЮЧИТЬ ДАТЧИКИ</button>';
             document.body.appendChild(banner);
-
-            document.getElementById('androidPermBtn').addEventListener('click', () => {
-                attachSensors();
+            document.getElementById('permBtn').onclick = () => {
                 banner.remove();
-            });
+                init();
+            };
         }
+
+        // Инициализация UI
+        updateUI();
     })();
     </script>
 </body>
